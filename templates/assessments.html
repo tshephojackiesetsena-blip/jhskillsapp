@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Holdings | Learner Assessments</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .assessments-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #eef4fb 0%, #ffffff 70%);
+            border: 1px solid #d9e5f1;
+        }
+        .assessments-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+        .assessments-stat-card,
+        .assessment-card,
+        .assessment-panel-box {
+            background: white;
+            border: 1px solid #dbe4ee;
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .assessments-stat-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .assessments-stat-card strong {
+            display: block;
+            font-size: 28px;
+            color: #0a3d62;
+        }
+        .assessment-card-grid,
+        .assessment-sidebar {
+            display: grid;
+            gap: 16px;
+        }
+        .assessment-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .assessment-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .assessment-meta-pill {
+            display: inline-block;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #eef4fb;
+            color: #0a3d62;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .assessment-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+        .assessment-mini-box {
+            padding: 12px;
+            border-radius: 12px;
+            background: #f8fbfe;
+            border: 1px solid #deebf4;
+        }
+        .assessment-mini-box span {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .assessment-mini-box strong {
+            color: #0a3d62;
+            font-size: 14px;
+        }
+        .assessment-status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            background: #0a3d62;
+        }
+        .appeal-area textarea {
+            width: 100%;
+            min-height: 90px;
+            margin: 12px 0;
+        }
+        .appeal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .training-table-wrap {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .assessment-empty {
+            color: #64748b;
+        }
+        @media (max-width: 1180px) {
+            .assessment-layout,
+            .assessments-stat-grid,
+            .assessment-mini-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Learner Assessments</h1>
+            <p>Track learner assessments by topic and unit standard, allow learner comments, and automate the appeal route from assessor back to moderator.</p>
+        </div>
+
+        {% include 'operations_flow_nav.html' %}
+
+        <div class="card assessments-hero">
+            <div>
+                <span class="section-tag">Learner Integration Step 5</span>
+                <h2 style="margin: 10px 0;">Assessment and Appeal Workflow</h2>
+                <p>Assessments are separate from moderation. This page is for learner assessment detail, comments, and appeal actions before final moderation closes the case.</p>
+            </div>
+            <div class="assessments-stat-grid">
+                <div class="assessments-stat-card">
+                    <span>Total Assessments</span>
+                    <strong id="assessmentTotal">0</strong>
+                </div>
+                <div class="assessments-stat-card">
+                    <span>Awaiting Moderation</span>
+                    <strong id="moderationTotal">0</strong>
+                </div>
+                <div class="assessments-stat-card">
+                    <span>With Assessor</span>
+                    <strong id="assessorAppealTotal">0</strong>
+                </div>
+                <div class="assessments-stat-card">
+                    <span>Back To Moderator</span>
+                    <strong id="moderatorAppealTotal">0</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="assessment-layout">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Assessment Board</span>
+                        <h2>Assessment Cards</h2>
+                    </div>
+                    <p>The learner can comment here and trigger the appeal flow. Status updates automatically when the learner sends the appeal to the assessor or returns it to moderation.</p>
+                </div>
+
+                <div class="assessment-card-grid" id="assessmentCardGrid"></div>
+            </div>
+
+            <div class="assessment-sidebar">
+                <div class="assessment-panel-box">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Workflow Rules</span>
+                            <h2>Status Automation</h2>
+                        </div>
+                    </div>
+                    <p>1. Learner submits appeal.</p>
+                    <p>2. Status moves to <strong>With Assessor</strong>.</p>
+                    <p>3. Assessor review returns case to <strong>Back To Moderator</strong>.</p>
+                    <p>4. Moderator finalises the outcome in the moderation workspace.</p>
+                </div>
+
+                <div class="assessment-panel-box">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Appeal Notes</span>
+                            <h2>Current Appeal Queue</h2>
+                        </div>
+                    </div>
+                    <div id="appealQueue"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <div class="section-heading">
+                <div>
+                    <span class="section-tag">Register</span>
+                    <h2>Full Assessment Register</h2>
+                </div>
+                <p>Projects have been removed from this view. The focus here is learner, topic, unit standard, appeal stage, assessor, and moderation readiness.</p>
+            </div>
+
+            <div class="training-table-wrap">
+                <table class="training-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Learner</th>
+                            <th>Qualification</th>
+                            <th>Topic</th>
+                            <th>Unit Standard</th>
+                            <th>Assessor</th>
+                            <th>Status</th>
+                            <th>Appeal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assessmentRegisterBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const assessmentSeed = {{ assessments|tojson }};
+        const appealStorageKey = "jh_assessment_appeals";
+
+        function getStoredAppeals() {
+            return JSON.parse(localStorage.getItem(appealStorageKey)) || {};
+        }
+
+        function getMergedAssessments() {
+            const storedAppeals = getStoredAppeals();
+            return assessmentSeed.map(item => ({ ...item, ...(storedAppeals[item.id] || {}) }));
+        }
+
+        function saveAssessmentUpdate(id, values) {
+            const storedAppeals = getStoredAppeals();
+            storedAppeals[id] = { ...(storedAppeals[id] || {}), ...values };
+            localStorage.setItem(appealStorageKey, JSON.stringify(storedAppeals));
+            renderAssessments();
+        }
+
+        function submitAppeal(id) {
+            const comment = document.getElementById(`comment-${id}`).value.trim();
+            if (!comment) {
+                alert("Please enter the learner comment before submitting the appeal.");
+                return;
+            }
+            saveAssessmentUpdate(id, {
+                learner_comment: comment,
+                appeal_status: "With Assessor",
+                status: "Appeal With Assessor",
+                next_step: "Assessor to review the learner appeal and return comments to moderation."
+            });
+        }
+
+        function returnToModerator(id) {
+            const comment = document.getElementById(`comment-${id}`).value.trim();
+            saveAssessmentUpdate(id, {
+                learner_comment: comment || "Assessor responded and returned the case to moderation.",
+                appeal_status: "Back To Moderator",
+                status: "Back To Moderator",
+                next_step: "Moderator to complete the final decision and close the case."
+            });
+        }
+
+        function renderAssessments() {
+            const assessments = getMergedAssessments();
+            const cardGrid = document.getElementById("assessmentCardGrid");
+            const registerBody = document.getElementById("assessmentRegisterBody");
+            const appealQueue = document.getElementById("appealQueue");
+
+            cardGrid.innerHTML = "";
+            registerBody.innerHTML = "";
+            appealQueue.innerHTML = "";
+
+            document.getElementById("assessmentTotal").innerText = assessments.length;
+            document.getElementById("moderationTotal").innerText = assessments.filter(item => item.status === "Awaiting Moderation").length;
+            document.getElementById("assessorAppealTotal").innerText = assessments.filter(item => item.appeal_status === "With Assessor").length;
+            document.getElementById("moderatorAppealTotal").innerText = assessments.filter(item => item.appeal_status === "Back To Moderator").length;
+
+            assessments.forEach(item => {
+                cardGrid.innerHTML += `
+                    <div class="assessment-card">
+                        <span class="section-tag">${item.id}</span>
+                        <h3 style="margin: 10px 0 6px;">${item.learner}</h3>
+                        <span class="assessment-status">${item.status}</span>
+
+                        <div class="assessment-meta-row">
+                            <span class="assessment-meta-pill">${item.topic}</span>
+                            <span class="assessment-meta-pill">${item.unit_standard}</span>
+                            <span class="assessment-meta-pill">${item.method}</span>
+                        </div>
+
+                        <div class="assessment-mini-grid">
+                            <div class="assessment-mini-box">
+                                <span>Qualification</span>
+                                <strong>${item.qualification}</strong>
+                            </div>
+                            <div class="assessment-mini-box">
+                                <span>Score</span>
+                                <strong>${item.score}</strong>
+                            </div>
+                            <div class="assessment-mini-box">
+                                <span>Assessor</span>
+                                <strong>${item.assessor}</strong>
+                            </div>
+                            <div class="assessment-mini-box">
+                                <span>Moderator</span>
+                                <strong>${item.moderator}</strong>
+                            </div>
+                            <div class="assessment-mini-box">
+                                <span>Appeal Status</span>
+                                <strong>${item.appeal_status}</strong>
+                            </div>
+                            <div class="assessment-mini-box">
+                                <span>Evidence</span>
+                                <strong>${item.evidence_status}</strong>
+                            </div>
+                        </div>
+
+                        <p style="margin-top:12px;"><strong>Next Step:</strong> ${item.next_step}</p>
+
+                        <div class="appeal-area">
+                            <textarea id="comment-${item.id}" placeholder="Learner comment or appeal note">${item.learner_comment || ""}</textarea>
+                            <div class="appeal-actions">
+                                <button class="btn" onclick="submitAppeal('${item.id}')">Send Appeal To Assessor</button>
+                                <button class="btn btn-secondary" onclick="returnToModerator('${item.id}')">Return To Moderator</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                registerBody.innerHTML += `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>${item.learner}</td>
+                        <td>${item.qualification}</td>
+                        <td>${item.topic}</td>
+                        <td>${item.unit_standard}</td>
+                        <td>${item.assessor}</td>
+                        <td>${item.status}</td>
+                        <td>${item.appeal_status}</td>
+                    </tr>
+                `;
+            });
+
+            const queueItems = assessments.filter(item => item.appeal_status !== "No Appeal");
+            if (!queueItems.length) {
+                appealQueue.innerHTML = "<p class='assessment-empty'>No appeal items are open right now.</p>";
+            } else {
+                queueItems.forEach(item => {
+                    appealQueue.innerHTML += `
+                        <div class="assessment-mini-box" style="margin-bottom: 10px;">
+                            <span>${item.learner}</span>
+                            <strong>${item.appeal_status}</strong>
+                            <p style="margin-top: 6px; color:#64748b;">${item.learner_comment || "No comment added."}</p>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        renderAssessments();
+    </script>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

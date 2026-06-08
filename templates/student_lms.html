@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | LMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Learning Management System</p>
+                    <h1>LMS access and active coursework</h1>
+                    <p class="student-subtext">Open your learning platform directly and keep your active tasks close by.</p>
+                </div>
+            </div>
+
+            <div class="student-two-column">
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Direct LMS link</h2>
+                            <p>Launch the assigned learning platform from here.</p>
+                        </div>
+                    </div>
+                    <a href="{{ student.lms_link }}" class="btn" target="_blank" rel="noopener noreferrer">Open LMS Platform</a>
+                </section>
+
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Current LMS tasks</h2>
+                            <p>Stay close to active work items and deadlines.</p>
+                        </div>
+                    </div>
+                    <div class="student-checklist-list">
+                        {% for task in tasks %}
+                        <div class="student-checklist-item">
+                            <strong>{{ task.title }}</strong>
+                            <p>{{ task.module }}</p>
+                            <small>{{ task.status }} | Due {{ task.due_date }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessments & Results | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Assessments & Results</h1>
+            <p>Check grades for tests, assignments, reassessment cases, and final exam results.</p>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+            <span class="section-tag">Academic Standing</span>
+            <h2 style="margin:12px 0 8px;">{{ academic_record.academic_status }}</h2>
+            <p>{{ academic_record.qualification }} | Credits completed: {{ academic_record.credits_completed }}</p>
+        </div>
+        <div class="training-table-wrap">
+            <table class="training-table">
+                <thead>
+                    <tr>
+                        <th>Learner</th>
+                        <th>Topic</th>
+                        <th>Unit Standard</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Appeal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in assessments %}
+                    <tr>
+                        <td>{{ item.learner }}</td>
+                        <td>{{ item.topic }}</td>
+                        <td>{{ item.unit_standard }}</td>
+                        <td>{{ item.score }}</td>
+                        <td>{{ item.status }}</td>
+                        <td>{{ item.appeal_status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

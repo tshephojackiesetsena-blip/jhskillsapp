@@ -1,0 +1,27 @@
+<div class="card operations-flow-card">
+    <div class="section-heading">
+        <div>
+            <span class="section-tag">Learner Integration</span>
+            <h2>One Guided Learner Workflow</h2>
+        </div>
+        <p>Move from learner intake into interventions, LMS delivery, documentation, assessment, moderation, and reporting.</p>
+    </div>
+
+    <div class="operations-step-row">
+        {% for step in operations_flow %}
+        <a class="operations-step {% if step.id == active_step %}active{% endif %}" href="{{ url_for(step.route) }}">
+            <span class="operations-step-number">{{ loop.index }}</span>
+            <span class="operations-step-label">{{ step.label }}</span>
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="operations-flow-actions">
+        {% if prev_step %}
+        <a class="btn btn-secondary" href="{{ url_for(prev_step.route) }}">Back: {{ prev_step.label }}</a>
+        {% endif %}
+        {% if next_step %}
+        <a class="btn" href="{{ url_for(next_step.route) }}">Next: {{ next_step.label }}</a>
+        {% endif %}
+    </div>
+</div>

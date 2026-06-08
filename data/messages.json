@@ -1,0 +1,12 @@
+[
+  {
+    "id": "msg-1780572998472",
+    "thread": "admin::admin@gmail.com||student::1001",
+    "from_id": "admin::admin@gmail.com",
+    "from_name": "Matshidiso Makae",
+    "to_id": "student::1001",
+    "body": "hello",
+    "ts": 1780572998,
+    "read": true
+  }
+]

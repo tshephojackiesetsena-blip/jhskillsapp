@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Profile | Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Student Profile</h1>
+            <p>View and update your personal details, emergency contacts, and student-facing records.</p>
+        </div>
+
+        <div class="profile-hero card">
+            <div class="profile-hero-left">
+                <div class="profile-avatar-text">SP</div>
+                <div class="profile-hero-text">
+                    <h2>{{ user.name }}</h2>
+                    <p class="profile-role">{{ user.qualification }}</p>
+                    <div class="profile-badges">
+                        <span class="badge badge-status">{{ user.status }}</span>
+                        <span class="badge badge-role">{{ user.student_number }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-hero-actions">
+                <a href="/records" class="btn">Academic Record</a>
+                <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="grid profile-stats-grid">
+            <div class="card stat-card">
+                <h3>Faculty</h3>
+                <p>{{ user.faculty }}</p>
+            </div>
+            <div class="card stat-card">
+                <h3>Campus</h3>
+                <p>{{ user.company_scope }}</p>
+            </div>
+            <div class="card stat-card">
+                <h3>Status</h3>
+                <p>{{ user.status }}</p>
+            </div>
+        </div>
+
+        <div class="two-column profile-layout">
+            <div class="card">
+                <h2>Personal Information</h2>
+                <div class="profile-info-list">
+                    <div class="profile-info-item">
+                        <span class="profile-label">Full Name</span>
+                        <span class="profile-value">{{ user.name }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-label">Email Address</span>
+                        <span class="profile-value">{{ user.email }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-label">Phone Number</span>
+                        <span class="profile-value">{{ user.phone }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-label">Student Number</span>
+                        <span class="profile-value">{{ user.student_number }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Emergency and Document Checklist</h2>
+                <div class="profile-summary-box">
+                    <p><strong>Emergency Contact:</strong> Mrs. Mokoena | 082 456 7800</p>
+                    <p><strong>Emergency Relationship:</strong> Parent</p>
+                    <p><strong>Required Documents:</strong> ID copy, proof of residence, and funding letter on file</p>
+                    <p><strong>Portal Role:</strong> {{ user.role }}</p>
+                </div>
+                <div class="profile-quick-actions">
+                    <a href="/documents" class="btn">Open Documents</a>
+                    <a href="/support" class="btn btn-secondary">Need Help?</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+
+        <main class="student-main">
+            <div class="student-topbar">
+                <div>
+                    <p class="student-eyebrow">Dashboard</p>
+                    <h1>Hello, {{ student.full_name.split(' ')[0] }}</h1>
+                    <p class="student-subtext">{{ student.qualification }} | {{ student.student_number }}</p>
+                </div>
+                <div class="student-pill-group">
+                    <div class="student-pill-card">
+                        <span>Campus</span>
+                        <strong>{{ student.location }}</strong>
+                    </div>
+                    <div class="student-pill-card">
+                        <span>Registration</span>
+                        <strong>{{ student.registration_status }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="student-summary-grid">
+                <div class="student-summary-card">
+                    <span>Student Number</span>
+                    <strong>{{ summary.student_number }}</strong>
+                </div>
+                <div class="student-summary-card">
+                    <span>Tasks</span>
+                    <strong>{{ summary.task_count }}</strong>
+                </div>
+                <div class="student-summary-card">
+                    <span>Notices</span>
+                    <strong>{{ summary.notice_count }}</strong>
+                </div>
+                <div class="student-summary-card">
+                    <span>Modules</span>
+                    <strong>{{ summary.module_count }}</strong>
+                </div>
+            </div>
+
+            <div class="student-dashboard-grid">
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>My tasks</h2>
+                            <p>Track coursework and deadlines without mixing them with admin tools.</p>
+                        </div>
+                        <a href="{{ url_for('student_tasks') }}" class="student-mini-btn">Open</a>
+                    </div>
+
+                    <div class="student-task-list">
+                        {% for task in tasks %}
+                        <div class="student-task-card">
+                            <div class="student-task-top">
+                                <div>
+                                    <strong>{{ task.title }}</strong>
+                                    <p>{{ task.module }}</p>
+                                </div>
+                                <span class="student-status-badge">{{ task.status }}</span>
+                            </div>
+                            <div class="student-task-meta">
+                                <span>Due {{ task.due_date }}</span>
+                                <span>{{ task.comments }} comments</span>
+                            </div>
+                            <div class="student-progress-track">
+                                <span style="width: {{ task.progress }}%;"></span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>My notes</h2>
+                            <p>Keep short study notes and reminders visible from the landing page.</p>
+                        </div>
+                        <a href="{{ url_for('student_notes') }}" class="student-mini-btn">Open</a>
+                    </div>
+
+                    <div class="student-notes-grid">
+                        {% for note in notes %}
+                        <div class="student-note-card {{ note.tone }}">
+                            <strong>{{ note.title }}</strong>
+                            <p>{{ note.body }}</p>
+                            <small>{{ note.date }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="student-panel student-span-two">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>My schedule</h2>
+                            <p>Classes, support sessions, and timetable details stay in one organized view.</p>
+                        </div>
+                        <a href="{{ url_for('student_timetable') }}" class="student-mini-btn">Weekly view</a>
+                    </div>
+
+                    <div class="student-schedule-table">
+                        {% for item in schedule %}
+                        <div class="student-schedule-row">
+                            <div><span>Time</span><strong>{{ item.time }}</strong></div>
+                            <div><span>Lesson</span><strong>{{ item.lesson }}</strong></div>
+                            <div><span>Teacher</span><strong>{{ item.teacher }}</strong></div>
+                            <div><span>Location</span><strong>{{ item.location }}</strong></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Notices</h2>
+                            <p>Keep up with deadlines and campus communication.</p>
+                        </div>
+                        <a href="{{ url_for('student_announcements') }}" class="student-mini-btn">All notices</a>
+                    </div>
+
+                    <div class="student-notice-list">
+                        {% for item in announcements %}
+                        <div class="student-notice-item">
+                            <small>{{ item.category }} | {{ item.date }}</small>
+                            <strong>{{ item.title }}</strong>
+                            <p>{{ item.summary }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Quick access</h2>
+                            <p>Jump to the areas students use most often.</p>
+                        </div>
+                    </div>
+
+                    <div class="student-quick-links">
+                        <a href="{{ url_for('student_profile') }}">Profile & documents</a>
+                        <a href="{{ url_for('student_registration') }}">Registration</a>
+                        <a href="{{ url_for('student_results') }}">Assessments & results</a>
+                        <a href="{{ url_for('student_fees') }}">Fee account</a>
+                        <a href="{{ url_for('student_records') }}">Academic records</a>
+                        <a href="{{ url_for('student_support') }}">Support desk</a>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

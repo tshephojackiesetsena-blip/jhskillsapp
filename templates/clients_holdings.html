@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ group.name }} | Group Companies</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>{{ group.name }} Client Template</h1>
+            <p>Manage the parent company and all subsidiary operations from one workspace.</p>
+        </div>
+
+        <div class="card holdings-hero">
+            <div>
+                <span class="section-tag">Parent Company</span>
+                <h2>{{ group.name }}</h2>
+                <p>{{ group.tagline }}</p>
+            </div>
+            <div class="holdings-stats">
+                <div class="holdings-stat">
+                    <span>Companies</span>
+                    <strong>{{ group.active_companies }}</strong>
+                </div>
+                <div class="holdings-stat">
+                    <span>Projects</span>
+                    <strong>{{ group.active_projects }}</strong>
+                </div>
+                <div class="holdings-stat">
+                    <span>Learners</span>
+                    <strong>{{ "{:,}".format(group.group_learners) }}</strong>
+                </div>
+                <div class="holdings-stat">
+                    <span>Compliance</span>
+                    <strong>{{ group.compliance_score }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="client-layout">
+            <div class="card company-list-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Subsidiaries</span>
+                        <h2>Group Companies</h2>
+                    </div>
+                    <p>Open a company to view its dedicated profile page, documents, activity, and requests.</p>
+                </div>
+
+                <div class="company-grid">
+                    {% for company in group.companies %}
+                    <a
+                        class="client-company-card"
+                        href="{{ url_for('company_profile', company_id=company.id) }}">
+                        <span class="company-status">{{ company.status }}</span>
+                        <h3>{{ company.name }}</h3>
+                        <p>{{ company.focus }}</p>
+                        <div class="company-meta">
+                            <span>{{ company.projects }} projects</span>
+                            <span>{{ company.learners }} learners</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card company-detail-card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Navigation</span>
+                        <h2>Separate Company Profiles</h2>
+                    </div>
+                    <p>Each company now opens on its own page so you can keep records, sections, and requests separate.</p>
+                </div>
+
+                <div class="mini-grid company-metrics">
+                    <div class="mini-card">
+                        <span>Parent Company</span>
+                        <strong>{{ group.name }}</strong>
+                    </div>
+                    <div class="mini-card">
+                        <span>Subsidiaries</span>
+                        <strong>{{ group.active_companies }}</strong>
+                    </div>
+                    <div class="mini-card">
+                        <span>Compliance</span>
+                        <strong>{{ group.compliance_score }}</strong>
+                    </div>
+                </div>
+
+                <div class="section-panel">
+                    <h3>What Changed</h3>
+                    <ul class="client-file-list">
+                        <li>Click any company card to open its own profile page.</li>
+                        <li>Each page has separate contracts, projects, communication, and document sections.</li>
+                        <li>The request form is also tied to the company page you open.</li>
+                    </ul>
+                </div>
+
+                <div class="section-panel">
+                    <h3>Available Company Pages</h3>
+                    <ul class="client-file-list">
+                        {% for company in group.companies %}
+                        <li><a class="inline-link" href="{{ url_for('company_profile', company_id=company.id) }}">{{ company.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Group Request Desk</span>
+                        <h2>Submit a New Request</h2>
+                    </div>
+                    <p>Send a request to the relevant company under {{ group.name }}.</p>
+                </div>
+
+                <div class="request-form-grid">
+                    <input type="text" id="contactPerson" placeholder="Contact Person">
+                    <input type="email" id="email" placeholder="Email">
+                    <input type="text" id="phone" placeholder="Phone Number">
+                    <select id="companySelect">
+                        {% for company in group.companies %}
+                        <option value="{{ company.id }}">{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <input type="text" id="requestInput" placeholder="Enter your request...">
+                <button class="btn" onclick="submitRequest()">Submit Request</button>
+                <ul id="requestList" class="client-request-list"></ul>
+            </div>
+
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Portfolio Snapshot</span>
+                        <h2>Upcoming Priorities</h2>
+                    </div>
+                </div>
+                <div class="list-group">
+                    <div><strong>Lumina:</strong> Innovation showcase preparations in progress.</div>
+                    <div><strong>JH Skills:</strong> Learner moderation cycle closes this week.</div>
+                    <div><strong>Health and Safety:</strong> Quarterly compliance review scheduled.</div>
+                    <div><strong>JH IT:</strong> CRM enhancement rollout remains on track.</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast-container"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

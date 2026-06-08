@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Results</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Assessments & Results</p>
+                    <h1>Marks and release status</h1>
+                    <p class="student-subtext">Review assessments, results, and what is still awaiting release.</p>
+                </div>
+            </div>
+            <section class="student-panel">
+                <div class="student-checklist-list">
+                    {% for item in results %}
+                    <div class="student-checklist-item">
+                        <strong>{{ item.title }}</strong>
+                        <p>{{ item.type }}</p>
+                        <small>{{ item.score }} | {{ item.status }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

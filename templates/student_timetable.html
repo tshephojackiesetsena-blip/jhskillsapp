@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Timetable</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Timetables & Calendars</p>
+                    <h1>Weekly class schedule</h1>
+                    <p class="student-subtext">Use this view for classes, tests, and scheduled learning support sessions.</p>
+                </div>
+            </div>
+            <section class="student-panel">
+                <div class="student-schedule-table">
+                    {% for item in schedule %}
+                    <div class="student-schedule-row">
+                        <div><span>Time</span><strong>{{ item.time }}</strong></div>
+                        <div><span>Lesson</span><strong>{{ item.lesson }}</strong></div>
+                        <div><span>Teacher</span><strong>{{ item.teacher }}</strong></div>
+                        <div><span>Location</span><strong>{{ item.location }}</strong></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<div class="sidebar">
+    <h2 class="logo">JH HOLDINGS</h2>
+    <ul>
+        {% for link in sidebar_links %}
+        <li class="{% if request.path == link.url %}active{% endif %}">
+            <a href="{{ link.url }}">{{ link.label }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    <div style="padding: 0 20px 12px; color: #d9e5f1; font-size: 12px;">
+        <strong>{{ current_user.role_label }}</strong><br>
+        <span>{{ current_user.company_scope }}</span>
+    </div>
+    <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">Switch to Dark Mode</button>
+</div>

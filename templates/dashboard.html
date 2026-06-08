@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ group.name }} | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .portal-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: linear-gradient(135deg, #ecf5ff 0%, #ffffff 70%);
+            border: 1px solid #d9e5f1;
+        }
+        .portal-stat-grid,
+        .portal-link-grid,
+        .portal-card-grid,
+        .portal-support-grid {
+            display: grid;
+            gap: 14px;
+        }
+        .portal-stat-grid {
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            width: 100%;
+        }
+        .portal-stat-card,
+        .portal-link-card,
+        .portal-info-card {
+            background: white;
+            border: 1px solid #dbe4ee;
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .portal-stat-card span,
+        .portal-link-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .portal-stat-card strong {
+            display: block;
+            font-size: 26px;
+            color: #0a3d62;
+        }
+        .portal-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .portal-stack {
+            display: grid;
+            gap: 20px;
+        }
+        .portal-link-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .portal-link-card {
+            text-decoration: none;
+            color: inherit;
+        }
+        .portal-link-card strong,
+        .portal-info-card strong {
+            display: block;
+            color: #0a3d62;
+            margin-bottom: 6px;
+            font-size: 16px;
+        }
+        .portal-link-card p,
+        .portal-info-card p {
+            color: #64748b;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .portal-card-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 16px;
+        }
+        .portal-support-grid {
+            margin-top: 16px;
+        }
+        .portal-chip {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #e8f0fb;
+            color: #0a3d62;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .portal-notice-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .portal-notice-item {
+            padding: 14px;
+            border-radius: 12px;
+            background: #f8fbfe;
+            border: 1px solid #deebf4;
+        }
+        .portal-notice-item small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+        @media (max-width: 1180px) {
+            .portal-layout,
+            .portal-stat-grid,
+            .portal-link-grid,
+            .portal-card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Student Portal Dashboard</h1>
+            <p>Access your profile, registration, timetables, assessments, LMS tools, finances, academic records, and campus support from one place.</p>
+        </div>
+
+        <div class="card portal-hero">
+            <div>
+                <span class="section-tag">Core Dashboard</span>
+                <h2 style="margin: 10px 0;">Welcome Back</h2>
+                <p>Use this portal like a university student system: check notices, manage academics, track finances, and reach support services quickly.</p>
+            </div>
+            <div class="portal-stat-grid">
+                <div class="portal-stat-card">
+                    <span>Student Number</span>
+                    <strong>{{ dashboard_summary.student_number }}</strong>
+                </div>
+                <div class="portal-stat-card">
+                    <span>Announcements</span>
+                    <strong>{{ dashboard_summary.announcement_count }}</strong>
+                </div>
+                <div class="portal-stat-card">
+                    <span>Today's Classes</span>
+                    <strong>{{ dashboard_summary.today_sessions }}</strong>
+                </div>
+                <div class="portal-stat-card">
+                    <span>Fee Balance</span>
+                    <strong>{{ dashboard_summary.balance }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="portal-layout">
+            <div class="portal-stack">
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Core Navigation</span>
+                            <h2>Start Here</h2>
+                        </div>
+                    </div>
+                    <div class="portal-link-grid">
+                        {% for item in core_links %}
+                        <a class="portal-link-card" href="{{ url_for(item.route) }}">
+                            <span>Portal</span>
+                            <strong>{{ item.title }}</strong>
+                            <p>{{ item.detail }}</p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Academics & Learning</span>
+                            <h2>Timetable and Study Access</h2>
+                        </div>
+                    </div>
+                    <div class="portal-notice-list">
+                        {% for item in academic_links %}
+                        <a class="portal-notice-item" href="{{ url_for(item.route) }}" style="text-decoration:none; color:inherit;">
+                            <small>{{ item.time }}</small>
+                            <strong>{{ item.title }}</strong>
+                            <p>{{ item.meta }}</p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Portal Overview</span>
+                            <h2>Quick Student Snapshots</h2>
+                        </div>
+                    </div>
+                    <div class="portal-card-grid">
+                        {% for item in portal_cards %}
+                        <a class="portal-info-card" href="{{ url_for(item.route) }}" style="text-decoration:none; color:inherit;">
+                            <span class="portal-chip">{{ item.label }}</span>
+                            <strong>{{ item.value }}</strong>
+                            <p>{{ item.detail }}</p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="portal-stack">
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Announcements</span>
+                            <h2>Latest Notices</h2>
+                        </div>
+                    </div>
+                    <div class="portal-notice-list">
+                        {% for item in announcements %}
+                        <div class="portal-notice-item">
+                            <small>{{ item.category }} | {{ item.date }}</small>
+                            <strong>{{ item.title }}</strong>
+                            <p>{{ item.summary }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Support</span>
+                            <h2>Student Life & Help</h2>
+                        </div>
+                    </div>
+                    <div class="portal-support-grid">
+                        {% for item in support_links %}
+                        <a class="portal-info-card" href="{{ url_for(item.route) }}" style="text-decoration:none; color:inherit;">
+                            <small>{{ item.time }}</small>
+                            <strong>{{ item.title }}</strong>
+                            <p>{{ item.detail }}</p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Finances</span>
+                            <h2>Fee Account Summary</h2>
+                        </div>
+                    </div>
+                    <div class="portal-info-card">
+                        <strong>Balance: {{ fee_account.tuition_balance }}</strong>
+                        <p>Next payment due: {{ fee_account.next_payment_due }}</p>
+                        <p>Bursary status: {{ fee_account.bursary_status }}</p>
+                        <p><a href="{{ url_for('fees') }}" class="inline-link">Open full fee account</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

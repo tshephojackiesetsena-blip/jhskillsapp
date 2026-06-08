@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration - JH Skills Development CRM</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #064303 0%, #e4e9f0 100%);
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 850px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .header {
+      background: #083803;
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .header p {
+      margin: 8px 0 0 0;
+      opacity: 0.9;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      flex: 1;
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      background: #f8f9fa;
+      transition: all 0.3s;
+    }
+    .tab.active {
+      background: rgb(248, 245, 245);
+      border-bottom: 4px solid #084e11;
+      color: #0c4507;
+    }
+
+    .form-container {
+      padding: 40px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #125005;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #076113;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #074712;
+      box-shadow: 0 0 0 3px rgba(4, 62, 19, 0.981);
+      outline: none;
+    }
+    .full-width {
+      grid-column: span 2;
+    }
+    .btn-group {
+      text-align: center;
+      margin-top: 30px;
+    }
+    button {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 0 8px;
+    }
+    .btn-register {
+      background: #054b23;
+      color: white;
+    }
+    .btn-register:hover {
+      background: #084003;
+    }
+    .btn-cancel {
+      background: #054a0c;
+      color: rgb(6, 83, 12);
+    }
+    .btn-cancel:hover {
+      background: #0b5d05;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>JH Skills Development & Consultancy</h1>
+    <p>Registration Portal</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" id="learnerTab" onclick="switchTab('learner')">Register as Learner</div>
+    <div class="tab" id="clientTab" onclick="switchTab('client')">Register as Client / Company</div>
+  </div>
+
+  <!-- Learner Form -->
+  <div class="form-container" id="learnerForm">
+    <h2 style="text-align:center; color:#053305;">Learner Registration</h2>
+    <form id="learnerRegistrationForm">
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="l_fullName">Full Name <span style="color:red;">*</span></label>
+          <input type="text" id="l_fullName" required>
+        </div>
+        <div class="form-group">
+          <label for="l_idNumber">South African ID Number <span style="color:red;">*</span></label>
+          <input type="text" id="l_idNumber" maxlength="13" required>
+        </div>
+
+        <div class="form-group">
+          <label for="l_email">Email Address <span style="color:red;">*</span></label>
+          <input type="email" id="l_email" required>
+        </div>
+        <div class="form-group">
+          <label for="l_phone">Phone Number <span style="color:red;">*</span></label>
+          <input type="tel" id="l_phone" placeholder="071 234 5678" required>
+        </div>
+
+        <div class="form-group">
+          <label for="l_gender">Gender <span style="color:red;">*</span></label>
+          <select id="l_gender" required>
+            <option value="">-- Select --</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="l_disability">Disability Status</label>
+          <select id="l_disability">
+            <option value="None">None</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="l_employment">Employment Status <span style="color:red;">*</span></label>
+          <select id="l_employment" required>
+            <option value="">-- Select --</option>
+            <option value="Employed">Employed</option>
+            <option value="Unemployed">Unemployed</option>
+            <option value="Self-Employed">Self-Employed</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="l_qualification">Qualification Interested In <span style="color:red;">*</span></label>
+          <select id="l_qualification" required>
+            <option value="">-- Select Programme --</option>
+            <option value="Learnership">Learnership</option>
+            <option value="Skills Programme">Skills Programme</option>
+            <option value="Short Course">Short Course</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="l_address">Physical Address</label>
+          <textarea id="l_address" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+        <button type="submit" class="btn-register">Register as Learner</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Client Form -->
+  <div class="form-container" id="clientForm" style="display: none;">
+    <h2 style="text-align:center; color:#0a3405;">Company / Client Registration</h2>
+    <form id="clientRegistrationForm">
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="c_companyName">Company Name <span style="color:red;">*</span></label>
+          <input type="text" id="c_companyName" required>
+        </div>
+
+        <div class="form-group">
+          <label for="c_regNumber">CIPC Registration Number <span style="color:red;">*</span></label>
+          <input type="text" id="c_regNumber" required>
+        </div>
+
+        <div class="form-group">
+          <label for="c_industry">Industry Sector</label>
+          <select id="c_industry">
+            <option value="">-- Select Industry --</option>
+            <option value="Manufacturing">Manufacturing</option>
+            <option value="Construction">Construction</option>
+            <option value="Mining">Mining</option>
+            <option value="Retail">Retail</option>
+            <option value="Services">Services</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="c_seta">SETA Alignment</label>
+          <select id="c_seta">
+            <option value="">-- Select SETA --</option>
+            <option value="MERSETA">MERSETA</option>
+            <option value="CETA">CETA</option>
+            <option value="TETA">TETA</option>
+            <option value="ETDP SETA">ETDP SETA</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="c_contactPerson">Contact Person <span style="color:red;">*</span></label>
+          <input type="text" id="c_contactPerson" required>
+        </div>
+
+        <div class="form-group">
+          <label for="c_email">Email Address <span style="color:red;">*</span></label>
+          <input type="email" id="c_email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="c_phone">Phone Number <span style="color:red;">*</span></label>
+          <input type="tel" id="c_phone" required>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="c_address">Physical Address <span style="color:red;">*</span></label>
+          <textarea id="c_address" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="c_notes">Training Needs / Message</label>
+          <textarea id="c_notes" rows="4" placeholder="Tell us about your training requirements..."></textarea>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+        <button type="submit" class="btn-register">Register Company</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function switchTab(type) {
+    document.getElementById('learnerTab').classList.remove('active');
+    document.getElementById('clientTab').classList.remove('active');
+    
+    if (type === 'learner') {
+      document.getElementById('learnerTab').classList.add('active');
+      document.getElementById('learnerForm').style.display = 'block';
+      document.getElementById('clientForm').style.display = 'none';
+    } else {
+      document.getElementById('clientTab').classList.add('active');
+      document.getElementById('learnerForm').style.display = 'none';
+      document.getElementById('clientForm').style.display = 'block';
+    }
+  }
+
+  // Learner Form Submit
+  document.getElementById('learnerRegistrationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert("✅ Learner registration submitted successfully!\n\nYour application will be reviewed by our team. You will receive an email confirmation shortly.");
+    // Production: POST to /api/learners/register
+  });
+
+  // Client Form Submit
+  document.getElementById('clientRegistrationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    alert("✅ Company registration submitted successfully!\n\nThank you! Our Business Development team will contact you within 48 hours.");
+    // Production: POST to /api/clients/register
+  });
+  </script> src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+</body>
+</html>

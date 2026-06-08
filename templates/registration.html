@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Registration</h1>
+            <p>Access online self-registration, module selection, and curriculum advising.</p>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+            <span class="section-tag">Qualification</span>
+            <h2 style="margin:12px 0 8px;">{{ academic_record.qualification }}</h2>
+            <p>{{ academic_record.faculty }} | {{ academic_record.year_level }}</p>
+        </div>
+        <div class="grid">
+            {% for item in interventions %}
+            <div class="card">
+                <span class="section-tag">{{ item.id }}</span>
+                <h2 style="margin:12px 0 8px;">{{ item.name }}</h2>
+                <p><strong>Type:</strong> {{ item.type }}</p>
+                <p><strong>Coordinator:</strong> {{ item.coordinator }}</p>
+                <p><strong>Dates:</strong> {{ item.start_date }} to {{ item.end_date }}</p>
+                <p><strong>Location:</strong> {{ item.location }}</p>
+                <p><strong>Expectations:</strong> {{ item.expectations }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

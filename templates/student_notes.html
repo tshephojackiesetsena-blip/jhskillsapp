@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Notes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Notes</p>
+                    <h1>Study notes and reminders</h1>
+                    <p class="student-subtext">A simple note area to keep learning reminders easy to reach.</p>
+                </div>
+            </div>
+            <section class="student-panel">
+                <div class="student-notes-grid">
+                    {% for note in notes %}
+                    <div class="student-note-card {{ note.tone }}">
+                        <strong>{{ note.title }}</strong>
+                        <p>{{ note.body }}</p>
+                        <small>{{ note.date }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

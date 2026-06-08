@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Holdings | Learner Integration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Learner Integration</h1>
+            <p>Run the learner journey as one guided flow from registration and training LMS activity through documentation, assessment, moderation, and reporting.</p>
+        </div>
+
+        {% include 'operations_flow_nav.html' %}
+
+        <div class="grid">
+            {% for step in operations_flow %}
+            <a class="card operations-hub-card" href="{{ url_for(step.route) }}">
+                <span class="section-tag">Step {{ loop.index }}</span>
+                <h2 style="margin: 12px 0 8px;">{{ step.label }}</h2>
+                <p>
+                    {% if step.id == 'learners' %}Register learners, capture login details, and start the LMS handover.{% endif %}
+                    {% if step.id == 'projects' %}Manage the learning intervention, dates, participants, location, and expectations.{% endif %}
+                    {% if step.id == 'training' %}Run the training LMS delivery schedule and session coordination.{% endif %}
+                    {% if step.id == 'documents' %}Track learner, compliance, and intervention support documents.{% endif %}
+                    {% if step.id == 'assessments' %}Capture unit standards, learner assessments, comments, and appeal actions.{% endif %}
+                    {% if step.id == 'moderation' %}Handle moderator review queues and final workflow sign-off.{% endif %}
+                    {% if step.id == 'reporting' %}Review oversight outputs and leadership reporting.{% endif %}
+                </p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

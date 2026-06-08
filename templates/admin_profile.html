@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Admin | Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Admin Profile</h1>
+            <p>Overview of your admin identity and your role in the student registration workflow.</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <span class="section-tag">Profile</span>
+                <h2>{{ user.name }}</h2>
+                <p>{{ user.role }}</p>
+                <p>{{ user.email }}</p>
+                <p>{{ user.phone }}</p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Scope</span>
+                <h2>{{ user.company_scope }}</h2>
+                <p>Access includes registration management, student document support, and portal handover coordination.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

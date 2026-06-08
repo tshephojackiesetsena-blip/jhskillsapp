@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Accounts | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Fee Accounts</h1>
+            <p>View your tuition balance, statements, payments, and bursary or funding status.</p>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <span class="section-tag">Balance</span>
+                <h2 style="margin:12px 0 8px;">{{ fee_account.tuition_balance }}</h2>
+                <p><strong>Next Payment Due:</strong> {{ fee_account.next_payment_due }}</p>
+                <p><strong>Bursary Status:</strong> {{ fee_account.bursary_status }}</p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Statement</span>
+                <h2 style="margin:12px 0 8px;">{{ fee_account.statement_month }}</h2>
+                <p>Download monthly statements and keep proof of payment ready for finance support.</p>
+            </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+            <span class="section-tag">Transactions</span>
+            <h2 style="margin:12px 0 8px;">Recent Activity</h2>
+            <ul class="client-file-list">
+                {% for item in fee_account.recent_transactions %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Holdings | Training Delivery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .training-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #eef4fb 0%, #ffffff 70%);
+            border: 1px solid #d9e5f1;
+        }
+
+        .training-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .training-stat-card {
+            background: white;
+            border: 1px solid #dbe4ee;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .training-stat-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .training-stat-card strong {
+            display: block;
+            font-size: 28px;
+            color: #0a3d62;
+        }
+
+        .training-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .training-session-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .training-session-card {
+            border: 1px solid #dbe4ee;
+            border-radius: 14px;
+            background: #ffffff;
+            padding: 18px;
+        }
+
+        .training-session-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .training-session-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .training-meta-pill {
+            display: inline-block;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #eef4fb;
+            color: #0a3d62;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .training-session-details {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .training-detail-box {
+            padding: 12px;
+            border-radius: 12px;
+            background: #f8fbfe;
+            border: 1px solid #deebf4;
+        }
+
+        .training-detail-box span {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .training-detail-box strong {
+            color: #0a3d62;
+            font-size: 14px;
+        }
+
+        .training-link-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .training-link-btn {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: #0a3d62;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .training-link-btn:hover {
+            background: #3c6382;
+        }
+
+        .training-link-btn.secondary {
+            background: #e8f0fb;
+            color: #0a3d62;
+        }
+
+        .training-link-btn.secondary:hover {
+            background: #d7e5f7;
+        }
+
+        .training-note {
+            margin-top: 12px;
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .training-side-stack {
+            display: grid;
+            gap: 20px;
+        }
+
+        .training-quick-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .training-quick-item {
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #deebf4;
+            background: #f8fbfe;
+        }
+
+        .training-quick-item strong {
+            color: #0a3d62;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .training-quick-item p {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .training-register-intro {
+            margin-bottom: 16px;
+            color: #64748b;
+            max-width: 720px;
+        }
+
+        .training-table .topic-cell strong {
+            display: block;
+            color: #0a3d62;
+            margin-bottom: 4px;
+        }
+
+        .training-table .topic-cell small,
+        .training-table .link-cell small {
+            color: #64748b;
+        }
+
+        .meeting-link {
+            color: #0a3d62;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .meeting-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 1180px) {
+            .training-layout,
+            .training-session-grid,
+            .training-session-details,
+            .training-stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Training Delivery</h1>
+            <p>Manage session delivery, facilitators, venues, attendance, live links, and learner-facing training information across programmes.</p>
+        </div>
+
+        {% include 'operations_flow_nav.html' %}
+
+        <div class="card training-hero">
+            <div>
+                <span class="section-tag">Operations Step 3</span>
+                <h2 style="margin: 10px 0;">Training Schedule and Delivery</h2>
+                <p>Keep sessions active with clear dates, facilitators, live meeting links, and practical delivery notes for learners and coordinators.</p>
+            </div>
+            <div class="training-stat-grid">
+                <div class="training-stat-card">
+                    <span>Total Sessions</span>
+                    <strong>{{ sessions|length }}</strong>
+                </div>
+                <div class="training-stat-card">
+                    <span>In Progress</span>
+                    <strong>{{ sessions | selectattr('status', 'equalto', 'In Progress') | list | length }}</strong>
+                </div>
+                <div class="training-stat-card">
+                    <span>Total Attendance</span>
+                    <strong>{{ sessions | sum(attribute='attendance') }}</strong>
+                </div>
+                <div class="training-stat-card">
+                    <span>Average Attendance</span>
+                    <strong>{{ ((sessions | sum(attribute='attendance')) / (sessions|length)) | round(0) | int if sessions else 0 }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="training-layout">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Live Schedule</span>
+                        <h2>Upcoming and Active Sessions</h2>
+                    </div>
+                    <p>Each training session now carries timing, meeting access, training materials, attendance context, and the next action for delivery teams.</p>
+                </div>
+
+                <div class="training-session-grid">
+                    {% for session in sessions %}
+                    <div class="training-session-card">
+                        <div class="training-session-top">
+                            <div>
+                                <span class="section-tag">{{ session.id }}</span>
+                                <h3 style="margin-top: 8px;">{{ session.topic }}</h3>
+                            </div>
+                            <span class="training-status-badge {% if session.status == 'In Progress' %}training-status-progress{% else %}training-status-scheduled{% endif %}">{{ session.status }}</span>
+                        </div>
+
+                        <div class="training-session-meta">
+                            <span class="training-meta-pill">{{ session.date }}</span>
+                            <span class="training-meta-pill">{{ session.time }}</span>
+                            <span class="training-meta-pill">{{ session.format }}</span>
+                        </div>
+
+                        <div class="training-session-details">
+                            <div class="training-detail-box">
+                                <span>Project</span>
+                                <strong>{{ session.project }}</strong>
+                            </div>
+                            <div class="training-detail-box">
+                                <span>Venue</span>
+                                <strong>{{ session.venue }}</strong>
+                            </div>
+                            <div class="training-detail-box">
+                                <span>Facilitator</span>
+                                <strong>{{ session.facilitator }}</strong>
+                            </div>
+                            <div class="training-detail-box">
+                                <span>Coordinator</span>
+                                <strong>{{ session.coordinator }}</strong>
+                            </div>
+                            <div class="training-detail-box">
+                                <span>Attendance</span>
+                                <strong>{{ session.attendance }} / {{ session.capacity }}</strong>
+                            </div>
+                            <div class="training-detail-box">
+                                <span>Materials</span>
+                                <strong>{{ session.materials }}</strong>
+                            </div>
+                        </div>
+
+                        <p class="training-note"><strong>Session Note:</strong> {{ session.notes }}</p>
+                        <p class="training-note"><strong>Next Action:</strong> {{ session.next_action }}</p>
+
+                        <div class="training-link-row">
+                            <a class="training-link-btn" href="{{ session.meeting_link }}" target="_blank">Open Link</a>
+                            <a class="training-link-btn secondary" href="{{ url_for('documents') }}">View Documents</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="training-side-stack">
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Delivery Focus</span>
+                            <h2>Coordinator Board</h2>
+                        </div>
+                    </div>
+
+                    <div class="training-quick-list">
+                        {% for session in sessions[:3] %}
+                        <div class="training-quick-item">
+                            <strong>{{ session.topic }}</strong>
+                            <p>{{ session.date }} | {{ session.time }} | {{ session.venue }}</p>
+                            <p>Facilitator: {{ session.facilitator }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Readiness</span>
+                            <h2>Training Checklist</h2>
+                        </div>
+                    </div>
+
+                    <div class="training-quick-list">
+                        <div class="training-quick-item">
+                            <strong>Meeting Links Shared</strong>
+                            <p>Ensure virtual sessions have Teams, Zoom, or Meet links sent to learners at least 24 hours in advance.</p>
+                        </div>
+                        <div class="training-quick-item">
+                            <strong>Registers and Packs</strong>
+                            <p>Prepare attendance registers, learner guides, assessment packs, and facilitator slides before the session date.</p>
+                        </div>
+                        <div class="training-quick-item">
+                            <strong>Venue and Equipment</strong>
+                            <p>Confirm internet access, projector setup, power points, and lab readiness for all in-person delivery days.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <div class="section-heading">
+                <div>
+                    <span class="section-tag">Training Register</span>
+                    <h2>Full Session Register</h2>
+                </div>
+                <p class="training-register-intro">This register gives the operations team a quick session-by-session view of dates, access links, attendance, and the practical information needed to keep delivery moving.</p>
+            </div>
+
+            <div class="training-table-wrap">
+                <table class="training-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date and Time</th>
+                            <th>Topic</th>
+                            <th>Project</th>
+                            <th>Venue / Format</th>
+                            <th>Facilitator</th>
+                            <th>Status</th>
+                            <th>Attendance</th>
+                            <th>Meeting Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.id }}</td>
+                            <td>
+                                <strong>{{ session.date }}</strong><br>
+                                <small>{{ session.time }}</small>
+                            </td>
+                            <td class="topic-cell">
+                                <strong>{{ session.topic }}</strong>
+                                <small>{{ session.materials }}</small>
+                            </td>
+                            <td>{{ session.project }}</td>
+                            <td>
+                                <strong>{{ session.venue }}</strong><br>
+                                <small>{{ session.format }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ session.facilitator }}</strong><br>
+                                <small>{{ session.coordinator }}</small>
+                            </td>
+                            <td><span class="training-status-badge {% if session.status == 'In Progress' %}training-status-progress{% else %}training-status-scheduled{% endif %}">{{ session.status }}</span></td>
+                            <td>{{ session.attendance }} / {{ session.capacity }}</td>
+                            <td class="link-cell">
+                                <a class="meeting-link" href="{{ session.meeting_link }}" target="_blank">Open Session</a><br>
+                                <small>{{ session.next_action }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

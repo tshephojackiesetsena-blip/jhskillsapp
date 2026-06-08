@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Holdings | Documents</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .documents-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #eef4fb 0%, #ffffff 70%);
+            border: 1px solid #d9e5f1;
+        }
+
+        .documents-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .documents-stat-card {
+            background: white;
+            border: 1px solid #dbe4ee;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .documents-stat-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .documents-stat-card strong {
+            display: block;
+            font-size: 28px;
+            color: #0a3d62;
+        }
+
+        .document-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .document-tab-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            background: #e8f0fb;
+            color: #0a3d62;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .document-tab-btn.active {
+            background: #0a3d62;
+            color: white;
+        }
+
+        .document-panel {
+            display: none;
+        }
+
+        .document-panel.active {
+            display: block;
+        }
+
+        .documents-toolbar {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 0.7fr) minmax(180px, 0.7fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .documents-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .documents-summary-card {
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #deebf4;
+            background: #f8fbfe;
+        }
+
+        .documents-summary-card span {
+            display: block;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .documents-summary-card strong {
+            display: block;
+            color: #0a3d62;
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .documents-summary-card p {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .documents-table-wrap {
+            overflow-x: auto;
+            margin-top: 18px;
+        }
+
+        .documents-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+        }
+
+        .documents-table th {
+            background: #1f2937;
+            color: white;
+            padding: 14px 12px;
+            text-align: left;
+            border: none;
+            font-family: 'Barlow', Arial, sans-serif;
+        }
+
+        .documents-table td {
+            padding: 14px 12px;
+            border-top: 1px solid #e5e7eb;
+            vertical-align: middle;
+        }
+
+        .document-name strong {
+            display: block;
+            color: #0a3d62;
+            margin-bottom: 4px;
+        }
+
+        .document-name small {
+            color: #64748b;
+        }
+
+        .document-status {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .document-status.current {
+            background: #166534;
+        }
+
+        .document-status.review {
+            background: #d97706;
+        }
+
+        .document-status.expiring {
+            background: #b91c1c;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .document-action-btn {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            background: #e8f0fb;
+            color: #0a3d62;
+        }
+
+        .document-action-btn:hover {
+            background: #d7e5f7;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .upload-grid .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .upload-help {
+            margin-top: 10px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .upload-message {
+            display: none;
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .upload-message.show {
+            display: block;
+        }
+
+        .upload-message.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .upload-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .missing-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .missing-card {
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #deebf4;
+            background: #f8fbfe;
+        }
+
+        .missing-card strong {
+            display: block;
+            color: #0a3d62;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .missing-card ul {
+            padding-left: 18px;
+            color: #64748b;
+            line-height: 1.7;
+        }
+
+        .empty-state {
+            color: #64748b;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 1180px) {
+            .documents-stat-grid,
+            .documents-toolbar,
+            .documents-summary-grid,
+            .upload-grid,
+            .missing-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Document Management</h1>
+            <p>Track compliance, learner, project, training, and operational documents across JH Holdings.</p>
+        </div>
+
+        {% include 'operations_flow_nav.html' %}
+
+        <div class="card documents-hero">
+            <div>
+                <span class="section-tag">Operations Step 4</span>
+                <h2 style="margin: 10px 0;">Document Hub</h2>
+                <p>Use this hub as the central filing room for the CRM, with document search, uploads, missing-document checks, and a clearer operational document register.</p>
+            </div>
+            <div class="documents-stat-grid">
+                <div class="documents-stat-card">
+                    <span>Total Documents</span>
+                    <strong>{{ documents|length }}</strong>
+                </div>
+                <div class="documents-stat-card">
+                    <span>Current</span>
+                    <strong>{{ documents | selectattr('status', 'equalto', 'Current') | list | length }}</strong>
+                </div>
+                <div class="documents-stat-card">
+                    <span>Under Review</span>
+                    <strong>{{ documents | selectattr('status', 'equalto', 'Under Review') | list | length }}</strong>
+                </div>
+                <div class="documents-stat-card">
+                    <span>Upload Limit</span>
+                    <strong>5 MB</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="document-tabs">
+                <button class="document-tab-btn active" data-tab="library" onclick="switchDocumentTab('library')">Library</button>
+                <button class="document-tab-btn" data-tab="uploads" onclick="switchDocumentTab('uploads')">Uploads</button>
+                <button class="document-tab-btn" data-tab="missing" onclick="switchDocumentTab('missing')">Missing / Expiring</button>
+            </div>
+
+            <div id="panel-library" class="document-panel active">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Library</span>
+                        <h2>Document Register</h2>
+                    </div>
+                    <p>Search and filter the document library by name, module, category, and status so teams can find the right file quickly.</p>
+                </div>
+
+                <div class="documents-toolbar">
+                    <input id="documentSearch" type="text" placeholder="Search document, owner, scope, or linked record" oninput="renderLibrary()">
+                    <select id="documentModuleFilter" onchange="renderLibrary()">
+                        <option value="">All Modules</option>
+                        <option value="Documents">Documents</option>
+                        <option value="Learners">Learners</option>
+                        <option value="Health and Safety">Health and Safety</option>
+                        <option value="JH IT">JH IT</option>
+                    </select>
+                    <select id="documentStatusFilter" onchange="renderLibrary()">
+                        <option value="">All Statuses</option>
+                        <option value="Current">Current</option>
+                        <option value="Under Review">Under Review</option>
+                    </select>
+                </div>
+
+                <div class="documents-summary-grid">
+                    <div class="documents-summary-card">
+                        <span>Compliance Files</span>
+                        <strong>{{ documents | selectattr('category', 'equalto', 'Compliance') | list | length }}</strong>
+                        <p>Files supporting group-level accreditation, policies, and governance readiness.</p>
+                    </div>
+                    <div class="documents-summary-card">
+                        <span>Operational Files</span>
+                        <strong>{{ documents | selectattr('category', 'equalto', 'Operations') | list | length }}</strong>
+                        <p>Learner administration, forms, and internal workflow documents.</p>
+                    </div>
+                    <div class="documents-summary-card">
+                        <span>System and Audit Files</span>
+                        <strong>{{ (documents | selectattr('category', 'equalto', 'Audit') | list | length) + (documents | selectattr('category', 'equalto', 'Systems') | list | length) }}</strong>
+                        <p>Files linked to system rollout, audit readiness, and compliance review activity.</p>
+                    </div>
+                </div>
+
+                <div class="documents-table-wrap">
+                    <table class="documents-table">
+                        <thead>
+                            <tr>
+                                <th>Document</th>
+                                <th>Category</th>
+                                <th>Module</th>
+                                <th>Owner</th>
+                                <th>Scope</th>
+                                <th>Linked To</th>
+                                <th>Updated</th>
+                                <th>Expiry</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentsLibraryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-uploads" class="document-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Uploads</span>
+                        <h2>Central Upload Register</h2>
+                    </div>
+                    <p>Capture general project, training, compliance, and operational files here. This upload panel now stores documents through Flask with working view and download actions.</p>
+                </div>
+
+                <div class="upload-grid">
+                    <input id="uploadDocName" placeholder="Document Name">
+                    <select id="uploadDocModule">
+                        <option value="">Select Module</option>
+                        <option>Learners</option>
+                        <option>Projects</option>
+                        <option>Training</option>
+                        <option>Documents</option>
+                        <option>Assessments</option>
+                        <option>Reporting</option>
+                    </select>
+                    <select id="uploadDocCategory">
+                        <option value="">Select Category</option>
+                        <option>Compliance</option>
+                        <option>Operations</option>
+                        <option>Training Materials</option>
+                        <option>Assessment Evidence</option>
+                        <option>Contracts</option>
+                        <option>Reports</option>
+                    </select>
+                    <input id="uploadDocOwner" placeholder="Owner / Department">
+                    <input id="uploadLinkedTo" placeholder="Linked To (learner, project, company, training)">
+                    <input id="uploadExpiryDate" type="date">
+                    <input id="uploadFileInput" class="full-width" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+                </div>
+
+                <button class="btn" style="margin-top: 16px;" onclick="saveCentralUpload()">Save Upload Record</button>
+                <p class="upload-help">Allowed file types: {{ allowed_extensions | join(', ') | upper }}. Maximum size: {{ upload_max_mb }} MB per file.</p>
+                <div id="centralUploadMessage" class="upload-message"></div>
+
+                <div class="documents-table-wrap">
+                    <table class="documents-table">
+                        <thead>
+                            <tr>
+                                <th>Document</th>
+                                <th>Module</th>
+                                <th>Category</th>
+                                <th>Owner</th>
+                                <th>Linked To</th>
+                                <th>Saved</th>
+                                <th>File</th>
+                            </tr>
+                        </thead>
+                        <tbody id="centralUploadsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-missing" class="document-panel">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Missing / Expiring</span>
+                        <h2>Document Watchlist</h2>
+                    </div>
+                    <p>Use this section to track required documents that are missing, still under review, or approaching expiry so the team can act before delivery is delayed.</p>
+                </div>
+
+                <div class="missing-grid">
+                    <div class="missing-card">
+                        <strong>Missing Required Learner Documents</strong>
+                        <ul>
+                            <li>Proof of address missing for newly enrolled learners in current intake.</li>
+                            <li>Bank confirmation outstanding for stipend-linked learners.</li>
+                            <li>Signed learner agreements still required before project activation.</li>
+                        </ul>
+                    </div>
+
+                    <div class="missing-card">
+                        <strong>Expiring or Review Items</strong>
+                        <ul id="expiringList"></ul>
+                    </div>
+
+                    <div class="missing-card">
+                        <strong>Training and Assessment Files</strong>
+                        <ul>
+                            <li>Attendance registers must be uploaded after every live training session.</li>
+                            <li>Assessment evidence packs should be filed before moderation begins.</li>
+                            <li>Session slide decks and learner guides should stay linked to each training session.</li>
+                        </ul>
+                    </div>
+
+                    <div class="missing-card">
+                        <strong>Compliance Follow-Up</strong>
+                        <ul>
+                            <li>Move documents marked <em>Under Review</em> to approved or current status after sign-off.</li>
+                            <li>Keep accreditation packs, safety registers, and client audit files current for the next reporting cycle.</li>
+                            <li>Track expiring files monthly and assign an owner before expiry month.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const documentLibrary = {{ documents|tojson }};
+        const initialCentralDocuments = {{ central_documents|tojson }};
+        const allowedExtensions = {{ allowed_extensions|tojson }};
+        const maxUploadMb = {{ upload_max_mb|default(5) }};
+        let centralDocuments = initialCentralDocuments.slice();
+
+        function switchDocumentTab(tab) {
+            document.querySelectorAll(".document-tab-btn").forEach(button => {
+                button.classList.toggle("active", button.dataset.tab === tab);
+            });
+
+            document.querySelectorAll(".document-panel").forEach(panel => {
+                panel.classList.toggle("active", panel.id === `panel-${tab}`);
+            });
+        }
+
+        function getStatusClass(status, expiryDate) {
+            if (status === "Current") {
+                return "current";
+            }
+
+            if (status === "Under Review") {
+                return "review";
+            }
+
+            const today = new Date("2026-05-07");
+            const expiry = expiryDate ? new Date(expiryDate) : null;
+            if (expiry && expiry < today) {
+                return "expiring";
+            }
+
+            return "review";
+        }
+
+        function renderLibrary() {
+            const search = document.getElementById("documentSearch").value.trim().toLowerCase();
+            const moduleFilter = document.getElementById("documentModuleFilter").value;
+            const statusFilter = document.getElementById("documentStatusFilter").value;
+            const tbody = document.getElementById("documentsLibraryBody");
+            const combinedDocuments = [
+                ...documentLibrary.map(document => ({ ...document, source: "library" })),
+                ...centralDocuments
+            ];
+
+            const filtered = combinedDocuments.filter(document => {
+                const matchesSearch = [
+                    document.name,
+                    document.owner,
+                    document.scope,
+                    document.linked_to,
+                    document.category,
+                    document.module
+                ].join(" ").toLowerCase().includes(search);
+
+                const matchesModule = !moduleFilter || document.module === moduleFilter;
+                const matchesStatus = !statusFilter || document.status === statusFilter;
+
+                return matchesSearch && matchesModule && matchesStatus;
+            });
+
+            tbody.innerHTML = "";
+
+            filtered.forEach(document => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="document-name">
+                            <strong>${document.name}</strong>
+                            <small>${document.id} | ${document.file_type}</small>
+                        </td>
+                        <td>${document.category}</td>
+                        <td>${document.module}</td>
+                        <td>${document.owner}</td>
+                        <td>${document.scope}</td>
+                        <td>${document.linked_to}</td>
+                        <td>${document.updated}</td>
+                        <td>${document.expiry_date || "-"}</td>
+                        <td><span class="document-status ${getStatusClass(document.status, document.expiry_date)}">${document.status}</span></td>
+                        <td>
+                            <div class="document-actions">
+                                ${document.view_url ? `<a class="document-action-btn" href="${document.view_url}" target="_blank">View</a>` : `<span class="document-action-btn">Reference</span>`}
+                                ${document.download_url ? `<a class="document-action-btn" href="${document.download_url}">Download</a>` : ""}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="10">No documents found for the current search or filters.</td></tr>`;
+            }
+        }
+
+        function setCentralUploadMessage(message, type) {
+            const box = document.getElementById("centralUploadMessage");
+            box.textContent = message;
+            box.className = `upload-message show ${type}`;
+        }
+
+        function clearCentralUploadForm() {
+            document.getElementById("uploadDocName").value = "";
+            document.getElementById("uploadDocModule").value = "";
+            document.getElementById("uploadDocCategory").value = "";
+            document.getElementById("uploadDocOwner").value = "";
+            document.getElementById("uploadLinkedTo").value = "";
+            document.getElementById("uploadExpiryDate").value = "";
+            document.getElementById("uploadFileInput").value = "";
+        }
+
+        function renderCentralUploads() {
+            const tbody = document.getElementById("centralUploadsBody");
+            const uploads = centralDocuments;
+            tbody.innerHTML = "";
+
+            uploads.forEach(upload => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="document-name">
+                            <strong>${upload.name}</strong>
+                            <small>${upload.original_name || upload.file_type}</small>
+                        </td>
+                        <td>${upload.module}</td>
+                        <td>${upload.category}</td>
+                        <td>${upload.owner}</td>
+                        <td>${upload.linked_to}</td>
+                        <td>${upload.uploaded_at || upload.updated}</td>
+                        <td>
+                            <div class="document-actions">
+                                <a class="document-action-btn" href="${upload.view_url}" target="_blank">View</a>
+                                <a class="document-action-btn" href="${upload.download_url}">Download</a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            if (!uploads.length) {
+                tbody.innerHTML = `<tr><td colspan="7">No central uploads saved yet.</td></tr>`;
+            }
+        }
+
+        async function saveCentralUpload() {
+            const name = document.getElementById("uploadDocName").value.trim();
+            const module = document.getElementById("uploadDocModule").value;
+            const category = document.getElementById("uploadDocCategory").value;
+            const owner = document.getElementById("uploadDocOwner").value.trim();
+            const linkedTo = document.getElementById("uploadLinkedTo").value.trim();
+            const expiryDate = document.getElementById("uploadExpiryDate").value;
+            const fileInput = document.getElementById("uploadFileInput");
+            const file = fileInput.files[0];
+
+            if (!name || !module || !category || !owner || !linkedTo || !file) {
+                setCentralUploadMessage("Please complete all fields and choose a file.", "error");
+                return;
+            }
+
+            if (file.size > maxUploadMb * 1024 * 1024) {
+                setCentralUploadMessage(`File is too large. Maximum upload size is ${maxUploadMb} MB per file.`, "error");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("module", module);
+            formData.append("category", category);
+            formData.append("owner", owner);
+            formData.append("linked_to", linkedTo);
+            formData.append("expiry_date", expiryDate);
+            formData.append("document_file", file);
+
+            try {
+                const response = await fetch("/documents/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.ok) {
+                    setCentralUploadMessage(result.message || "Upload failed. Please try again.", "error");
+                    return;
+                }
+
+                centralDocuments = result.documents || [];
+                clearCentralUploadForm();
+                renderCentralUploads();
+                renderLibrary();
+                renderExpiringList();
+                setCentralUploadMessage(result.message, "success");
+            } catch (_error) {
+                setCentralUploadMessage("Upload failed. Please make sure the Flask app is running and try again.", "error");
+            }
+        }
+
+        function renderExpiringList() {
+            const list = document.getElementById("expiringList");
+            const expiring = [...documentLibrary, ...centralDocuments].filter(document => document.status === "Under Review" || document.expiry_date);
+            list.innerHTML = "";
+
+            expiring.forEach(document => {
+                const item = document.createElement("li");
+                item.textContent = `${document.name} | ${document.status} | Expiry: ${document.expiry_date || "Not set"}`;
+                list.appendChild(item);
+            });
+
+            if (!expiring.length) {
+                list.innerHTML = "<li>No expiring or review items right now.</li>";
+            }
+        }
+
+        renderLibrary();
+        renderCentralUploads();
+        renderExpiringList();
+    </script>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

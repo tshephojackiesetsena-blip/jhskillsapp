@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Fees</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Fee Accounts</p>
+                    <h1>Finance and funding status</h1>
+                    <p class="student-subtext">See your tuition balance, bursary status, and payment-related overview in one place.</p>
+                </div>
+            </div>
+            <div class="student-summary-grid">
+                <div class="student-summary-card"><span>Tuition Balance</span><strong>{{ student.tuition_balance }}</strong></div>
+                <div class="student-summary-card"><span>Bursary Status</span><strong>{{ student.bursary_status }}</strong></div>
+                <div class="student-summary-card"><span>Programme</span><strong>{{ student.programme }}</strong></div>
+                <div class="student-summary-card"><span>Campus</span><strong>{{ student.location }}</strong></div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

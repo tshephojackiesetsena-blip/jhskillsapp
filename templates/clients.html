@@ -1,0 +1,157 @@
+<!DOCTYPE html>  
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Skills CRM | Client Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Client Management</h1>
+            <p>Manage company profiles, requests, documents, and project progress.</p>
+        </div>
+
+        <div class="card">
+            <h2 id="welcomeMsg">Welcome, Client</h2>
+            <p>Here you can manage your services, requests, and track progress.</p>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2>Company Profiles</h2>
+            <div class="client-company-card" id="shiluvhaCard">Shiluvha</div>
+        </div>
+
+        <div id="companyDetails" class="card" style="display:none; margin-top: 20px;">
+            <h2 id="companyName"></h2>
+            <div class="client-options">
+                <div class="client-option" onclick="openSection('contracts')">📄 Contracts and Agreements</div>
+                <div class="client-option" onclick="openSection('projects')">📊 Project History</div>
+                <div class="client-option" onclick="openSection('communication')">💬 Communication Log</div>
+                <div class="client-option" onclick="openSection('documents')">📁 Document Repository</div>
+            </div>
+        </div>
+
+        <div id="sectionContent" class="card" style="display:none; margin-top: 20px;">
+            <h2 id="sectionTitle"></h2>
+            <input type="file" id="fileInput">
+            <button class="btn" onclick="uploadFile()">Upload</button>
+            <ul id="fileList" class="client-file-list"></ul>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2>Submit a Request</h2>
+            <input type="text" id="contactPerson" placeholder="Contact Person">
+            <input type="email" id="email" placeholder="Email">
+            <input type="text" id="phone" placeholder="Phone Number">
+            <input type="text" id="requestInput" placeholder="Enter your request...">
+            <button class="btn" onclick="submitRequest()">Submit</button>
+            <ul id="requestList" class="client-request-list"></ul>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2>Upcoming Projects</h2>
+            <p>System Upgrade: <strong>In Progress</strong></p>
+        </div>
+
+        <div id="toast-container"></div>
+    </div>
+
+    <script>
+        document.getElementById("shiluvhaCard").addEventListener("click", function() {
+            let details = document.getElementById("companyDetails");
+            let name = document.getElementById("companyName");
+            details.style.display = "block";
+            name.innerText = "Shiluvha";
+        });
+
+        let currentSection = "";
+
+        function openSection(section) {
+            currentSection = section;
+            let sectionContent = document.getElementById("sectionContent");
+            let title = document.getElementById("sectionTitle");
+            sectionContent.style.display = "block";
+
+            if (section === "contracts") title.innerText = "Contracts and Agreements";
+            if (section === "projects") title.innerText = "Project History";
+            if (section === "communication") title.innerText = "Communication Log";
+            if (section === "documents") title.innerText = "Document Repository";
+
+            displayFiles();
+        }
+
+        function uploadFile() {
+            let input = document.getElementById("fileInput");
+            let file = input.files[0];
+
+            if (!file) {
+                showToast("Please select a file.");
+                return;
+            }
+
+            let files = JSON.parse(localStorage.getItem(currentSection)) || [];
+            files.push(file.name);
+            localStorage.setItem(currentSection, JSON.stringify(files));
+
+            displayFiles();
+            input.value = "";
+            showToast("File uploaded successfully.");
+        }
+
+        function displayFiles() {
+            let list = document.getElementById("fileList");
+            list.innerHTML = "";
+            let files = JSON.parse(localStorage.getItem(currentSection)) || [];
+
+            files.forEach(file => {
+                let li = document.createElement("li");
+                li.innerText = "📄 " + file;
+                list.appendChild(li);
+            });
+        }
+
+        function submitRequest() {
+            let contact = document.getElementById("contactPerson").value.trim();
+            let email = document.getElementById("email").value.trim();
+            let phone = document.getElementById("phone").value.trim();
+            let request = document.getElementById("requestInput").value.trim();
+
+            if (!contact || !email || !phone || !request) {
+                showToast("Please fill in all fields.");
+                return;
+            }
+
+            let li = document.createElement("li");
+            li.innerText = `👤 ${contact} | 📧 ${email} | 📞 ${phone} | 📝 ${request}`;
+            document.getElementById("requestList").appendChild(li);
+
+            document.getElementById("contactPerson").value = "";
+            document.getElementById("email").value = "";
+            document.getElementById("phone").value = "";
+            document.getElementById("requestInput").value = "";
+
+            showToast("Request submitted successfully.");
+        }
+
+        function showToast(message) {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.innerText = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

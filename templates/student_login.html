@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            font-family: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.24), transparent 34%),
+                linear-gradient(135deg, #a8c728 0%, #6fa01f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: #1b3820;
+        }
+        .student-login-shell {
+            width: 100%;
+            max-width: 1120px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            border-radius: 34px;
+            overflow: hidden;
+            background: rgba(239, 244, 230, 0.92);
+            border: 1px solid rgba(27, 56, 32, 0.12);
+            box-shadow: 0 24px 60px rgba(55, 81, 15, 0.22);
+            backdrop-filter: blur(12px);
+        }
+        .student-showcase {
+            padding: 44px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.18) 100%);
+        }
+        .student-showcase h1 {
+            font-size: 40px;
+            margin-bottom: 10px;
+            font-family: "Franklin Gothic Demi", "Bahnschrift SemiBold", "Trebuchet MS", sans-serif;
+        }
+        .student-showcase p {
+            color: #5d744f;
+            line-height: 1.7;
+            max-width: 520px;
+        }
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 28px;
+        }
+        .showcase-card {
+            padding: 18px;
+            border-radius: 22px;
+            min-height: 170px;
+        }
+        .showcase-card.green {
+            background: #d9f08d;
+        }
+        .showcase-card.purple {
+            background: #1da98c;
+            color: #f6fffb;
+        }
+        .showcase-card.white {
+            grid-column: span 2;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(27, 56, 32, 0.12);
+        }
+        .showcase-card h3 {
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+        .showcase-card p {
+            color: inherit;
+        }
+        .student-login-panel {
+            padding: 44px;
+            background: rgba(255, 255, 255, 0.54);
+        }
+        .student-login-panel h2 {
+            font-size: 30px;
+            margin-bottom: 8px;
+            font-family: "Franklin Gothic Demi", "Bahnschrift SemiBold", "Trebuchet MS", sans-serif;
+        }
+        .student-login-panel p {
+            color: #5d744f;
+            margin-bottom: 22px;
+            line-height: 1.6;
+        }
+        .field {
+            margin-bottom: 16px;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .field input {
+            width: 100%;
+            border: 1px solid rgba(27, 56, 32, 0.2);
+            border-radius: 16px;
+            padding: 15px 16px;
+            font-size: 15px;
+            background: rgba(255, 255, 255, 0.88);
+        }
+        .field input:focus {
+            outline: none;
+            border-color: #22ae73;
+            box-shadow: 0 0 0 4px rgba(34, 174, 115, 0.15);
+        }
+        .login-btn,
+        .admin-link {
+            width: 100%;
+            border: none;
+            border-radius: 16px;
+            padding: 15px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .login-btn {
+            background: linear-gradient(135deg, #22ae73, #1da98c);
+            color: #ffffff;
+        }
+        .admin-link {
+            margin-top: 12px;
+            background: rgba(255, 255, 255, 0.62);
+            color: #1b3820;
+            border: 1px solid rgba(27, 56, 32, 0.1);
+        }
+        .error-box {
+            background: #fff1cb;
+            color: #5f4a00;
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+        }
+        .sample-card {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.68);
+            border: 1px solid rgba(27, 56, 32, 0.12);
+        }
+        .sample-card strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+        .sample-card p {
+            margin: 0 0 6px;
+        }
+        @media (max-width: 980px) {
+            .student-login-shell,
+            .showcase-grid {
+                grid-template-columns: 1fr;
+            }
+            .showcase-card.white {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="student-login-shell">
+        <div class="student-showcase">
+            <h1>Student Portal</h1>
+            <p>A cleaner university-style space for your dashboard, schedule, tasks, fees, records, notices, and support services after admin registration.</p>
+
+            <div class="showcase-grid">
+                <div class="showcase-card green">
+                    <h3>My tasks</h3>
+                    <p>Track course work, deadlines, and progress in one place.</p>
+                </div>
+                <div class="showcase-card purple">
+                    <h3>My notes</h3>
+                    <p>Keep quick reminders and study notes close to your dashboard.</p>
+                </div>
+                <div class="showcase-card white">
+                    <h3>My schedule</h3>
+                    <p>Open your weekly classes, campus timetable, and academic reminders as soon as you log in.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="student-login-panel">
+            <h2>Sign in as student</h2>
+            <p>Use the username and password issued to you by the admin team after your registration was completed.</p>
+
+            <form method="POST" action="{{ url_for('student_login') }}">
+                {% if error %}
+                <div class="error-box">{{ error }}</div>
+                {% endif %}
+                <div class="field">
+                    <label for="username">Student Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="login-btn">Enter Student Portal</button>
+            </form>
+
+            <a href="{{ url_for('login') }}" class="admin-link">Back to Admin Login</a>
+
+            {% for student in sample_students %}
+            <div class="sample-card">
+                <strong>Demo student: {{ student.full_name }}</strong>
+                <p>Username: {{ student.username }}</p>
+                <p>Password: {{ student.password }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

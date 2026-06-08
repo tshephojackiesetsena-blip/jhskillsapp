@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Holdings | Learning Interventions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .projects-hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #eef4fb 0%, #ffffff 70%);
+            border: 1px solid #d9e5f1;
+        }
+
+        .projects-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .projects-stat-card {
+            background: white;
+            border: 1px solid #dbe4ee;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .projects-stat-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .projects-stat-card strong {
+            display: block;
+            font-size: 28px;
+            color: #0a3d62;
+        }
+
+        .projects-layout-enhanced {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .project-portfolio-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .project-portfolio-card {
+            padding: 18px;
+            border: 1px solid #dbe4ee;
+            border-radius: 14px;
+            background: #ffffff;
+        }
+
+        .project-card-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .project-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .project-meta-pill {
+            display: inline-block;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #eef4fb;
+            color: #0a3d62;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .project-mini-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .project-mini-box {
+            padding: 12px;
+            border-radius: 12px;
+            background: #f8fbfe;
+            border: 1px solid #deebf4;
+        }
+
+        .project-mini-box span {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .project-mini-box strong {
+            color: #0a3d62;
+            font-size: 14px;
+        }
+
+        .project-progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #dbe7f3;
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 12px 0 6px;
+        }
+
+        .project-progress-bar span {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #0a3d62, #3c6382);
+        }
+
+        .project-note {
+            margin-top: 12px;
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .project-side-stack {
+            display: grid;
+            gap: 20px;
+        }
+
+        .project-focus-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .project-focus-item {
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #deebf4;
+            background: #f8fbfe;
+        }
+
+        .project-focus-item strong {
+            color: #0a3d62;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .project-focus-item p {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .projects-register-intro {
+            margin-bottom: 16px;
+            color: #64748b;
+            max-width: 760px;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            background: #0a3d62;
+        }
+
+        .priority-medium {
+            background: #d97706;
+        }
+
+        .priority-high {
+            background: #b91c1c;
+        }
+
+        .projects-table .project-name-cell strong {
+            display: block;
+            color: #0a3d62;
+            margin-bottom: 4px;
+        }
+
+        .projects-table .project-name-cell small {
+            color: #64748b;
+        }
+
+        @media (max-width: 1180px) {
+            .projects-layout-enhanced,
+            .project-portfolio-grid,
+            .project-mini-grid,
+            .projects-stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Learning Interventions</h1>
+            <p>Track each learnership intervention by participant numbers, start and end dates, expectations, locations, coordinators, and operational risk.</p>
+        </div>
+
+        {% include 'operations_flow_nav.html' %}
+
+        <div class="card projects-hero">
+            <div>
+                <span class="section-tag">Learner Integration Step 2</span>
+                <h2 style="margin: 10px 0;">Learning Intervention Overview</h2>
+                <p>Use this space to monitor intervention dates, participants, coordinators, locations, delivery expectations, and the immediate actions each team is carrying.</p>
+            </div>
+            <div class="projects-stat-grid">
+                <div class="projects-stat-card">
+                    <span>Interventions</span>
+                    <strong>{{ projects|length }}</strong>
+                </div>
+                <div class="projects-stat-card">
+                    <span>In Progress</span>
+                    <strong>{{ projects | selectattr('status', 'equalto', 'In Progress') | list | length }}</strong>
+                </div>
+                <div class="projects-stat-card">
+                    <span>Total Participants</span>
+                    <strong>{{ projects | sum(attribute='participants') }}</strong>
+                </div>
+                <div class="projects-stat-card">
+                    <span>Total Budget</span>
+                    <strong>R{{ "{:,}".format(projects | sum(attribute='budget')) }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="projects-layout-enhanced">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Portfolio</span>
+                        <h2>Active Intervention Cards</h2>
+                    </div>
+                    <p>Each intervention now includes participant volumes, dates, coordinator ownership, location, expectations, delivery mode, and risk focus.</p>
+                </div>
+
+                <div class="project-portfolio-grid">
+                    {% for project in projects %}
+                    <div class="project-portfolio-card">
+                        <div class="project-card-top">
+                            <div>
+                                <span class="section-tag">{{ project.id }}</span>
+                                <h3 style="margin-top: 8px;">{{ project.name }}</h3>
+                            </div>
+                            <span class="priority-badge {% if project.priority == 'Medium' %}priority-medium{% elif project.priority == 'High' %}priority-high{% endif %}">{{ project.priority }}</span>
+                        </div>
+
+                        <div class="project-meta-row">
+                            <span class="project-meta-pill">{{ project.company }}</span>
+                            <span class="project-meta-pill">{{ project.status }}</span>
+                            <span class="project-meta-pill">{{ project.delivery_mode }}</span>
+                        </div>
+
+                        <div class="project-progress-bar">
+                            <span style="width: {{ project.completion }}%;"></span>
+                        </div>
+                        <p class="project-note"><strong>Completion:</strong> {{ project.completion }}%</p>
+
+                        <div class="project-mini-grid">
+                            <div class="project-mini-box">
+                                <span>Manager</span>
+                                <strong>{{ project.manager }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Coordinator</span>
+                                <strong>{{ project.coordinator }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Funding</span>
+                                <strong>{{ project.funding }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Budget</span>
+                                <strong>R{{ "{:,}".format(project.budget) }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Participants</span>
+                                <strong>{{ project.participants }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Next Review</span>
+                                <strong>{{ project.next_review }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Timeline</span>
+                                <strong>{{ project.start_date }} to {{ project.end_date }}</strong>
+                            </div>
+                            <div class="project-mini-box">
+                                <span>Location</span>
+                                <strong>{{ project.location }}</strong>
+                            </div>
+                        </div>
+
+                        <p class="project-note"><strong>Expectations:</strong> {{ project.expectations }}</p>
+                        <p class="project-note"><strong>Next Action:</strong> {{ project.next_action }}</p>
+                        <p class="project-note"><strong>Risk Focus:</strong> {{ project.risks }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="project-side-stack">
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Management Focus</span>
+                            <h2>Review Board</h2>
+                        </div>
+                    </div>
+
+                    <div class="project-focus-list">
+                        {% for project in projects %}
+                        <div class="project-focus-item">
+                            <strong>{{ project.id }} | {{ project.name }}</strong>
+                            <p>Review Date: {{ project.next_review }}</p>
+                            <p>Coordinator: {{ project.coordinator }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="section-tag">Milestones</span>
+                            <h2>Immediate Delivery Focus</h2>
+                        </div>
+                    </div>
+
+                    <div class="project-focus-list">
+                        {% for project in projects %}
+                        <div class="project-focus-item">
+                            <strong>{{ project.name }}</strong>
+                            <p>{{ project.milestones[0] }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <div class="section-heading">
+                <div>
+                    <span class="section-tag">Register</span>
+                    <h2>Full Intervention Register</h2>
+                </div>
+                <p class="projects-register-intro">This register gives a more complete operational view of each intervention, including participants, coordinators, dates, locations, and expectations.</p>
+            </div>
+
+            <div class="training-table-wrap">
+                <table class="training-table projects-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Intervention</th>
+                            <th>Company</th>
+                            <th>Coordinator</th>
+                            <th>Status</th>
+                            <th>Participants</th>
+                            <th>Timeline</th>
+                            <th>Location</th>
+                            <th>Expectations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in projects %}
+                        <tr>
+                            <td>{{ project.id }}</td>
+                            <td class="project-name-cell">
+                                <strong>{{ project.name }}</strong>
+                                <small>{{ project.type }} | {{ project.delivery_mode }}</small>
+                            </td>
+                            <td>{{ project.company }}</td>
+                            <td>{{ project.coordinator }}</td>
+                            <td>{{ project.status }}</td>
+                            <td>{{ project.participants }}</td>
+                            <td>{{ project.start_date }} to {{ project.end_date }}</td>
+                            <td>{{ project.location }}</td>
+                            <td>{{ project.expectations }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

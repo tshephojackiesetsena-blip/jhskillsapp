@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Record | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Proof of Registration / Academic Record</h1>
+            <p>Generate and download official student documents such as proof of registration and academic records.</p>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <span class="section-tag">Academic Record</span>
+                <h2 style="margin:12px 0 8px;">{{ record.qualification }}</h2>
+                <p><strong>Faculty:</strong> {{ record.faculty }}</p>
+                <p><strong>Year Level:</strong> {{ record.year_level }}</p>
+                <p><strong>Credits Completed:</strong> {{ record.credits_completed }}</p>
+                <p><strong>Status:</strong> {{ record.academic_status }}</p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Official Documents</span>
+                <h2 style="margin:12px 0 8px;">Download Options</h2>
+                <ul class="client-file-list">
+                    <li>Proof of Registration.pdf</li>
+                    <li>Academic Transcript.pdf</li>
+                    <li>Funding Confirmation Letter.pdf</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+            <span class="section-tag">Document Library</span>
+            <h2 style="margin:12px 0 8px;">Supporting Records</h2>
+            <ul class="client-file-list">
+                {% for item in documents %}
+                <li>{{ item.name }} | {{ item.status }} | {{ item.updated }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Services | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Campus Services</h1>
+            <p>Access accommodation, library resources, and sports facility bookings.</p>
+        </div>
+        <div class="grid">
+            {% for item in services %}
+            <div class="card">
+                <span class="section-tag">{{ item.status }}</span>
+                <h2 style="margin:12px 0 8px;">{{ item.name }}</h2>
+                <p>{{ item.detail }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

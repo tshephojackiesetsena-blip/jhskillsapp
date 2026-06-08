@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Tasks</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Tasks</p>
+                    <h1>Coursework tracker</h1>
+                    <p class="student-subtext">Assignments, discussion items, and active work grouped for the student only.</p>
+                </div>
+            </div>
+            <section class="student-panel">
+                <div class="student-task-list">
+                    {% for task in tasks %}
+                    <div class="student-task-card">
+                        <div class="student-task-top">
+                            <div>
+                                <strong>{{ task.title }}</strong>
+                                <p>{{ task.module }}</p>
+                            </div>
+                            <span class="student-status-badge">{{ task.status }}</span>
+                        </div>
+                        <div class="student-task-meta">
+                            <span>Due {{ task.due_date }}</span>
+                            <span>{{ task.comments }} comments</span>
+                        </div>
+                        <div class="student-progress-track">
+                            <span style="width: {{ task.progress }}%;"></span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Admin | Student Registration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .admin-register-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .admin-register-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .admin-stat-card {
+            padding: 16px;
+            border: 1px solid #dbe4ee;
+            border-radius: 14px;
+            background: #ffffff;
+        }
+        .admin-stat-card span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+        .admin-stat-card strong {
+            color: #0a3d62;
+            font-size: 28px;
+        }
+        .admin-register-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .admin-register-table th,
+        .admin-register-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+        .admin-register-table th {
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 12px;
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        .status-chip,
+        .login-chip {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .status-chip {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .login-chip {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .message-box {
+            display: none;
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .message-box.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+        .message-box.error {
+            display: block;
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+        .credentials-preview {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .credentials-preview .card {
+            padding: 16px;
+        }
+        @media (max-width: 1180px) {
+            .admin-register-grid,
+            .admin-stats,
+            .credentials-preview {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 900px) {
+            .admin-register-grid,
+            .admin-stats,
+            .credentials-preview {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Student Registration</h1>
+            <p>Register students here, issue their separate portal login details, and keep the admin side cleanly separate from the student experience.</p>
+        </div>
+
+        <div class="card">
+            <div class="section-heading">
+                <div>
+                    <span class="section-tag">Admin Intake</span>
+                    <h2>Create Student Portal Access</h2>
+                </div>
+                <p>Once a student is registered, they can use their own portal login and will no longer need to enter the admin area.</p>
+            </div>
+
+            <div id="formMessage" class="message-box"></div>
+
+            <form id="studentRegisterForm">
+                <div class="admin-register-grid">
+                    <input name="full_name" placeholder="Full Name" required>
+                    <input name="email" type="email" placeholder="Email" required>
+                    <input name="phone" placeholder="Phone Number" required>
+                    <input name="id_number" placeholder="ID Number" required>
+                    <input name="gender" placeholder="Gender" required>
+                    <input name="address" placeholder="Address" required>
+                    <input name="employment" placeholder="Employment" required>
+                    <input name="qualification" placeholder="Qualification" required>
+                    <input name="faculty" placeholder="Faculty" required>
+                    <input name="programme" placeholder="Programme / Intervention" required>
+                    <input name="coordinator" placeholder="Coordinator" required>
+                    <input name="location" placeholder="Campus / Location" required>
+                    <input name="start_date" type="date" required>
+                    <select name="status" required>
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                    <input name="year_level" placeholder="Year Level" required>
+                    <input name="modules" placeholder="Modules (comma separated)" required>
+                    <input name="emergency_contact_name" placeholder="Emergency Contact Name" required>
+                    <input name="emergency_contact_phone" placeholder="Emergency Contact Phone" required>
+                    <input name="emergency_contact_relationship" placeholder="Emergency Relationship" required>
+                    <input name="tuition_balance" placeholder="Tuition Balance e.g. R18,450">
+                    <input name="bursary_status" placeholder="Bursary Status">
+                </div>
+
+                <div class="admin-register-actions">
+                    <button type="submit" class="btn">Register Student</button>
+                    <a href="{{ url_for('student_login') }}" class="btn btn-secondary">Open Student Login</a>
+                </div>
+            </form>
+
+            <div class="credentials-preview">
+                <div class="card">
+                    <span class="section-tag">Latest Username</span>
+                    <h3 id="latestUsername">Not issued yet</h3>
+                </div>
+                <div class="card">
+                    <span class="section-tag">Latest Password</span>
+                    <h3 id="latestPassword">Not issued yet</h3>
+                </div>
+                <div class="card">
+                    <span class="section-tag">Portal Route</span>
+                    <h3>/student-login</h3>
+                </div>
+            </div>
+
+            <div class="admin-stats">
+                <div class="admin-stat-card">
+                    <span>Total Students</span>
+                    <strong id="totalStudents">{{ students|length }}</strong>
+                </div>
+                <div class="admin-stat-card">
+                    <span>Active Accounts</span>
+                    <strong id="activeStudents">{{ students | selectattr('status', 'equalto', 'Active') | list | length }}</strong>
+                </div>
+                <div class="admin-stat-card">
+                    <span>Registered</span>
+                    <strong id="registeredStudents">{{ students | selectattr('registration_status', 'equalto', 'Registered') | list | length }}</strong>
+                </div>
+                <div class="admin-stat-card">
+                    <span>Student Login Path</span>
+                    <strong>/student-login</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <div class="section-heading">
+                <div>
+                    <span class="section-tag">Registered Students</span>
+                    <h2>Portal Access Register</h2>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="admin-register-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Programme</th>
+                            <th>Portal Login</th>
+                            <th>Status</th>
+                            <th>Coordinator</th>
+                            <th>Profile</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody">
+                        {% for student in students %}
+                        <tr>
+                            <td>
+                                <strong>{{ student.full_name }}</strong><br>
+                                <small>{{ student.student_number }} | {{ student.email }}</small>
+                            </td>
+                            <td>
+                                {{ student.programme }}<br>
+                                <small>{{ student.location }} | {{ student.start_date }}</small>
+                            </td>
+                            <td>
+                                <span class="login-chip">{{ student.username }}</span><br>
+                                <small>{{ student.password }}</small>
+                            </td>
+                            <td><span class="status-chip">{{ student.status }}</span></td>
+                            <td>{{ student.coordinator }}</td>
+                            <td><a class="btn" href="{{ url_for('learner_profile', student_id=student.id) }}">Open</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const registerForm = document.getElementById("studentRegisterForm");
+        const messageBox = document.getElementById("formMessage");
+        const tableBody = document.getElementById("studentTableBody");
+
+        function showMessage(text, type) {
+            messageBox.className = `message-box ${type}`;
+            messageBox.textContent = text;
+        }
+
+        function renderStudents(students) {
+            tableBody.innerHTML = "";
+            students.forEach(student => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td><strong>${student.full_name}</strong><br><small>${student.student_number} | ${student.email}</small></td>
+                        <td>${student.programme}<br><small>${student.location} | ${student.start_date}</small></td>
+                        <td><span class="login-chip">${student.username}</span><br><small>${student.password}</small></td>
+                        <td><span class="status-chip">${student.status}</span></td>
+                        <td>${student.coordinator}</td>
+                        <td><a class="btn" href="/learners/${student.id}">Open</a></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById("totalStudents").innerText = students.length;
+            document.getElementById("activeStudents").innerText = students.filter(student => student.status === "Active").length;
+            document.getElementById("registeredStudents").innerText = students.filter(student => student.registration_status === "Registered").length;
+        }
+
+        registerForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            showMessage("", "");
+
+            const formData = new FormData(registerForm);
+            const response = await fetch("/api/admin/students", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                showMessage(data.message || "Unable to register the student.", "error");
+                return;
+            }
+
+            showMessage(data.message, "success");
+            document.getElementById("latestUsername").innerText = data.student.username;
+            document.getElementById("latestPassword").innerText = data.student.password;
+            registerForm.reset();
+            renderStudents(data.students);
+        });
+    </script>
+</body>
+</html>

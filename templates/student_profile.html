@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Student Profile</p>
+                    <h1>{{ student.full_name }}</h1>
+                    <p class="student-subtext">Update your personal details, emergency contact, and required documents.</p>
+                </div>
+            </div>
+
+            <div class="student-two-column">
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Personal details</h2>
+                            <p>Your student account information and emergency contact details.</p>
+                        </div>
+                    </div>
+
+                    <form method="POST">
+                        <div class="student-form-grid">
+                            <div>
+                                <label>Email</label>
+                                <input type="email" name="email" value="{{ student.email }}" required>
+                            </div>
+                            <div>
+                                <label>Phone</label>
+                                <input type="text" name="phone" value="{{ student.phone }}" required>
+                            </div>
+                            <div>
+                                <label>Address</label>
+                                <input type="text" name="address" value="{{ student.address }}" required>
+                            </div>
+                            <div>
+                                <label>Student Number</label>
+                                <input type="text" value="{{ student.student_number }}" disabled>
+                            </div>
+                            <div>
+                                <label>Emergency Contact Name</label>
+                                <input type="text" name="emergency_contact_name" value="{{ student.emergency_contact_name }}" required>
+                            </div>
+                            <div>
+                                <label>Emergency Contact Phone</label>
+                                <input type="text" name="emergency_contact_phone" value="{{ student.emergency_contact_phone }}" required>
+                            </div>
+                            <div>
+                                <label>Relationship</label>
+                                <input type="text" name="emergency_contact_relationship" value="{{ student.emergency_contact_relationship }}" required>
+                            </div>
+                            <div>
+                                <label>Qualification</label>
+                                <input type="text" value="{{ student.qualification }}" disabled>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn" style="margin-top: 14px;">Save Updates</button>
+                    </form>
+                </section>
+
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Required documents</h2>
+                            <p>{{ document_checklist.required_uploaded }} of {{ document_checklist.required_total }} required document groups uploaded.</p>
+                        </div>
+                    </div>
+
+                    <div class="student-checklist-list">
+                        {% for item in document_checklist["items"] %}
+                        <div class="student-checklist-item">
+                            <strong>{{ item.label }}</strong>
+                            <p>{{ item.description }}</p>
+                            <small>{% if item.uploaded %}Uploaded{% else %}Pending{% endif %}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <form id="studentUploadForm" class="student-upload-box">
+                        <select name="document_category" required>
+                            <option value="">Choose document type</option>
+                            {% for item in document_types %}
+                            <option value="{{ item.id }}">{{ item.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="file" name="document_file" required>
+                        <button type="submit" class="btn">Upload Document</button>
+                    </form>
+                    <p class="student-muted-text">Allowed: {{ allowed_extensions|join(', ') }} | Maximum size: {{ upload_max_mb }} MB</p>
+                    <div id="studentUploadMessage" class="student-muted-text"></div>
+
+                    <div class="student-document-links">
+                        {% for document in learner_documents %}
+                        <a href="{{ document.view_url }}" target="_blank" rel="noopener noreferrer">{{ document.original_name }}</a>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById("studentUploadForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const response = await fetch("{{ url_for('student_document_upload') }}", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+            const message = document.getElementById("studentUploadMessage");
+            message.textContent = data.message || (response.ok ? "Upload complete." : "Upload failed.");
+            message.style.color = response.ok ? "#166534" : "#b91c1c";
+            if (response.ok) {
+                window.location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

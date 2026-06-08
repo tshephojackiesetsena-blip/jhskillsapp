@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Services | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Support Services</h1>
+            <p>Reach student counselling, campus healthcare, and IT support desks.</p>
+        </div>
+        <div class="grid">
+            {% for item in support_services %}
+            <div class="card">
+                <span class="section-tag">Support Desk</span>
+                <h2 style="margin:12px 0 8px;">{{ item.name }}</h2>
+                <p><strong>Contact:</strong> {{ item.contact }}</p>
+                <p>{{ item.detail }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

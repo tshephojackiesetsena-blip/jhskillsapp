@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS | Student Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Learning Management System (LMS)</h1>
+            <p>Access course materials, submit assignments, and join online learning spaces.</p>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <span class="section-tag">Blackboard</span>
+                <h2 style="margin:12px 0 8px;">Main LMS Access</h2>
+                <p>Open course content, lecture notes, and assignment folders.</p>
+                <p><a href="https://blackboard.com" target="_blank" rel="noopener noreferrer" class="inline-link">Open Blackboard</a></p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Canvas</span>
+                <h2 style="margin:12px 0 8px;">Alternative LMS Access</h2>
+                <p>Join discussion forums, submit assessments, and track course progress.</p>
+                <p><a href="https://canvas.instructure.com" target="_blank" rel="noopener noreferrer" class="inline-link">Open Canvas</a></p>
+            </div>
+            {% for item in sessions %}
+            <div class="card">
+                <span class="section-tag">{{ item.format }}</span>
+                <h2 style="margin:12px 0 8px;">{{ item.topic }}</h2>
+                <p><strong>Venue:</strong> {{ item.venue }}</p>
+                <p><strong>Meeting Link:</strong> <a href="{{ item.meeting_link }}" target="_blank" rel="noopener noreferrer" class="inline-link">Launch session</a></p>
+                <p><strong>Materials:</strong> {{ item.materials }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

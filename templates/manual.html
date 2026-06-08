@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Admin | Manual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Admin Manual</h1>
+            <p>This guide keeps the admin work separate from the student portal so registration, login handover, and support remain organized.</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <span class="section-tag">Step 1</span>
+                <h2>Register the Student</h2>
+                <p>Use the student registration page to capture personal details, qualification, modules, emergency contact, and portal access information.</p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Step 2</span>
+                <h2>Issue Student Credentials</h2>
+                <p>After registration, provide the generated username and password so the student can use the student-only login page.</p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Step 3</span>
+                <h2>Student Uses Separate Portal</h2>
+                <p>Students log in on <strong>/student-login</strong> and see their own dashboard, tasks, schedule, fees, notes, support, and records.</p>
+            </div>
+            <div class="card">
+                <span class="section-tag">Step 4</span>
+                <h2>Upload Required Documents</h2>
+                <p>Admin can open a student profile and upload required records, while students can also manage their own document checklist from their profile page.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

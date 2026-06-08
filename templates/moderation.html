@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JH Holdings | Moderation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>Moderation Workspace</h1>
+            <p>Review assessment results, learner appeals, assessor feedback, and final moderation actions in a separate queue.</p>
+        </div>
+
+        {% include 'operations_flow_nav.html' %}
+
+        <div class="grid">
+            {% for assessment in assessments %}
+            <div class="card">
+                <span class="section-tag">{{ assessment.id }}</span>
+                <h2 style="margin: 12px 0 8px;">{{ assessment.learner }}</h2>
+                <p><strong>Topic:</strong> {{ assessment.topic }}</p>
+                <p><strong>Unit Standard:</strong> {{ assessment.unit_standard }}</p>
+                <p><strong>Status:</strong> {{ assessment.status }}</p>
+                <p><strong>Appeal:</strong> {{ assessment.appeal_status }}</p>
+                <p><strong>Moderator:</strong> {{ assessment.moderator }}</p>
+                <p><strong>Next Step:</strong> {{ assessment.next_step }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

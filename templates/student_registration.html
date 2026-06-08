@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Registration</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Registration</p>
+                    <h1>Academic registration and module view</h1>
+                    <p class="student-subtext">Review your intervention, modules, and registration status without needing admin navigation.</p>
+                </div>
+            </div>
+
+            <div class="student-two-column">
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Your registration</h2>
+                            <p>Current student account and module setup.</p>
+                        </div>
+                    </div>
+                    <div class="student-checklist-list">
+                        <div class="student-checklist-item"><strong>Status</strong><p>{{ student.registration_status }}</p></div>
+                        <div class="student-checklist-item"><strong>Programme</strong><p>{{ student.programme }}</p></div>
+                        <div class="student-checklist-item"><strong>Coordinator</strong><p>{{ student.coordinator }}</p></div>
+                        <div class="student-checklist-item"><strong>Modules</strong><p>{{ student.modules|join(', ') }}</p></div>
+                    </div>
+                </section>
+
+                <section class="student-panel">
+                    <div class="student-panel-head">
+                        <div>
+                            <h2>Available intervention information</h2>
+                            <p>Reference details around your registered programme stream.</p>
+                        </div>
+                    </div>
+                    <div class="student-notice-list">
+                        {% for item in interventions %}
+                        <div class="student-notice-item">
+                            <small>{{ item.id }} | {{ item.location }}</small>
+                            <strong>{{ item.name }}</strong>
+                            <p>{{ item.expectations }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

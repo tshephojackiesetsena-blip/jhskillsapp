@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | Student Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .detail-card {
+            padding: 14px;
+            border-radius: 14px;
+            background: #f8fbfe;
+            border: 1px solid #dbe4ee;
+        }
+        .detail-card span {
+            display: block;
+            margin-bottom: 6px;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .checklist-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .checklist-item {
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid #dbe4ee;
+            background: #ffffff;
+        }
+        .upload-panel {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 1px solid #dbe4ee;
+        }
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+        .document-link {
+            display: inline-block;
+            margin-top: 8px;
+            color: #2563eb;
+            text-decoration: none;
+        }
+        @media (max-width: 1000px) {
+            .profile-grid,
+            .detail-grid,
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <h1>{{ learner.full_name }}</h1>
+            <p>Admin view of the student account, issued portal login, and required document checklist.</p>
+        </div>
+
+        <a href="{{ url_for('learners') }}" class="btn btn-secondary">Back to Registration</a>
+
+        <div class="profile-grid">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Student Record</span>
+                        <h2>Portal and Personal Details</h2>
+                    </div>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card"><span>Student Number</span><strong>{{ learner.student_number }}</strong></div>
+                    <div class="detail-card"><span>Portal Username</span><strong>{{ learner.username }}</strong></div>
+                    <div class="detail-card"><span>Portal Password</span><strong>{{ learner.password }}</strong></div>
+                    <div class="detail-card"><span>Programme</span><strong>{{ learner.programme }}</strong></div>
+                    <div class="detail-card"><span>Faculty</span><strong>{{ learner.faculty }}</strong></div>
+                    <div class="detail-card"><span>Coordinator</span><strong>{{ learner.coordinator }}</strong></div>
+                    <div class="detail-card"><span>Email</span><strong>{{ learner.email }}</strong></div>
+                    <div class="detail-card"><span>Phone</span><strong>{{ learner.phone }}</strong></div>
+                    <div class="detail-card"><span>Campus</span><strong>{{ learner.location }}</strong></div>
+                    <div class="detail-card"><span>Status</span><strong>{{ learner.status }}</strong></div>
+                    <div class="detail-card"><span>Emergency Contact</span><strong>{{ learner.emergency_contact_name }}</strong></div>
+                    <div class="detail-card"><span>Emergency Phone</span><strong>{{ learner.emergency_contact_phone }}</strong></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Checklist</span>
+                        <h2>Required Documents</h2>
+                    </div>
+                </div>
+
+                <p><strong>{{ document_checklist.required_uploaded }}</strong> of <strong>{{ document_checklist.required_total }}</strong> required document groups uploaded.</p>
+
+                <div class="checklist-list">
+                    {% for item in document_checklist.items %}
+                    <div class="checklist-item">
+                        <strong>{{ item.label }}</strong>
+                        <p>{{ item.description }}</p>
+                        <p>Status: {% if item.uploaded %}Uploaded{% else %}Pending{% endif %}</p>
+                        {% for document in item.documents %}
+                        <a class="document-link" href="{{ document.view_url }}" target="_blank" rel="noopener noreferrer">{{ document.original_name }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="upload-panel">
+                    <h3>Upload document</h3>
+                    <form id="adminUploadForm">
+                        <div class="upload-grid">
+                            <select name="document_category" required>
+                                <option value="">Choose document type</option>
+                                {% for item in document_types %}
+                                <option value="{{ item.id }}">{{ item.label }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="file" name="document_file" required>
+                            <button type="submit" class="btn">Upload</button>
+                        </div>
+                    </form>
+                    <p style="margin-top: 10px; color: #64748b;">Allowed: {{ allowed_extensions|join(', ') }} | Max {{ upload_max_mb }} MB</p>
+                    <div id="uploadMessage" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("adminUploadForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const response = await fetch("/learners/{{ learner.id }}/documents/upload", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+            const message = document.getElementById("uploadMessage");
+            message.textContent = data.message || (response.ok ? "Upload complete." : "Upload failed.");
+            message.style.color = response.ok ? "#166534" : "#b91c1c";
+            if (response.ok) {
+                window.location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

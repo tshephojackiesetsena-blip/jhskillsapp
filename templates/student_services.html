@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Campus Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="student-portal-body">
+    <div class="student-shell">
+        {% include 'student_sidebar.html' %}
+        <main class="student-main">
+            <div class="student-page-header">
+                <div>
+                    <p class="student-eyebrow">Campus Services</p>
+                    <h1>Accommodation, library, and facilities</h1>
+                    <p class="student-subtext">Student life tools should be easy to find and never hidden inside admin pages.</p>
+                </div>
+            </div>
+            <section class="student-panel">
+                <div class="student-checklist-list">
+                    {% for item in services %}
+                    <div class="student-checklist-item">
+                        <strong>{{ item.name }}</strong>
+                        <p>{{ item.detail }}</p>
+                        <small>{{ item.status }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

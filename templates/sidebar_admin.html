@@ -1,0 +1,18 @@
+<div class="sidebar">
+    <div class="sidebar-brand">
+        <img src="{{ url_for('static', filename='images/jh_logo.png') }}" alt="JH logo" class="sidebar-logo-image">
+        <h2 class="logo">JH ADMIN</h2>
+    </div>
+    <ul>
+        {% for link in sidebar_links %}
+        <li class="{% if request.path == link.url %}active{% endif %}">
+            <a href="{{ link.url }}">{{ link.label }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="sidebar-user-meta">
+        <strong>{{ current_user.name }}</strong><br>
+        <span>{{ current_user.role_label }}</span>
+    </div>
+    <button type="button" class="theme-toggle-btn" onclick="window.toggleTheme && toggleTheme()">Switch to Dark Mode</button>
+</div>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company.name }} | Company Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'sidebar_admin.html' %}
+
+    <div class="main-content">
+        <div class="page-title">
+            <a class="back-link" href="{{ url_for('clients') }}">Back to Group Companies</a>
+            <h1>{{ company.name }}</h1>
+            <p>{{ company.focus }}</p>
+        </div>
+
+        <div class="card holdings-hero">
+            <div>
+                <span class="section-tag">Company Profile</span>
+                <h2>{{ company.name }}</h2>
+                <p>Dedicated company workspace under {{ group.name }}.</p>
+            </div>
+            <div class="holdings-stats">
+                <div class="holdings-stat">
+                    <span>Status</span>
+                    <strong>{{ company.status }}</strong>
+                </div>
+                <div class="holdings-stat">
+                    <span>Projects</span>
+                    <strong>{{ company.projects }}</strong>
+                </div>
+                <div class="holdings-stat">
+                    <span>Learners</span>
+                    <strong>{{ company.learners }}</strong>
+                </div>
+                <div class="holdings-stat">
+                    <span>Documents</span>
+                    <strong>{{ company.documents }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="client-layout">
+            <div class="card company-detail-card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Contact Details</span>
+                        <h2>{{ company.name }} Overview</h2>
+                    </div>
+                </div>
+
+                <div class="company-contact">
+                    <div><strong>Email:</strong> {{ company.contact }}</div>
+                    <div><strong>Phone:</strong> {{ company.phone }}</div>
+                    <div><strong>Parent Company:</strong> {{ group.name }}</div>
+                </div>
+
+                <div class="section-panel">
+                    <h3>Key Highlights</h3>
+                    <ul class="client-file-list">
+                        {% for item in company.highlights %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Quick Navigation</span>
+                        <h2>Other Companies</h2>
+                    </div>
+                    <p>Move between dedicated company pages under {{ group.name }}.</p>
+                </div>
+
+                <div class="client-options">
+                    {% for item in group.companies %}
+                    <a class="client-option {% if item.id == company.id %}active{% endif %}" href="{{ url_for('company_profile', company_id=item.id) }}">
+                        {{ item.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Records</span>
+                        <h2>Contracts and Agreements</h2>
+                    </div>
+                </div>
+                <ul class="client-file-list">
+                    {% for item in company.sections.contracts %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Projects</span>
+                        <h2>Project History</h2>
+                    </div>
+                </div>
+                <ul class="client-file-list">
+                    {% for item in company.sections.projects %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="two-column">
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Communication</span>
+                        <h2>Communication Log</h2>
+                    </div>
+                </div>
+                <ul class="client-file-list">
+                    {% for item in company.sections.communication %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="section-heading">
+                    <div>
+                        <span class="section-tag">Documents</span>
+                        <h2>Document Repository</h2>
+                    </div>
+                </div>
+                <ul class="client-file-list">
+                    {% for item in company.sections.documents %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-heading">
+                <div>
+                    <span class="section-tag">Request Desk</span>
+                    <h2>Submit a Request for {{ company.name }}</h2>
+                </div>
+                <p>This request form is dedicated to {{ company.name }}.</p>
+            </div>
+
+            <div class="request-form-grid">
+                <input type="text" id="contactPerson" placeholder="Contact Person">
+                <input type="email" id="email" placeholder="Email">
+                <input type="text" id="phone" placeholder="Phone Number">
+                <input type="text" id="companyNameField" value="{{ company.name }}" readonly>
+            </div>
+            <input type="text" id="requestInput" placeholder="Enter your request...">
+            <button class="btn" onclick="submitRequest()">Submit Request</button>
+            <ul id="requestList" class="client-request-list"></ul>
+        </div>
+
+        <div id="toast-container"></div>
+    </div>
+
+    <script>
+        function submitRequest() {
+            const contact = document.getElementById("contactPerson").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const request = document.getElementById("requestInput").value.trim();
+            const company = "{{ company.name }}";
+
+            if (!contact || !email || !phone || !request) {
+                showToast("Please fill in all fields.");
+                return;
+            }
+
+            const li = document.createElement("li");
+            li.innerText = `${company}: ${contact} | ${email} | ${phone} | ${request}`;
+            document.getElementById("requestList").prepend(li);
+
+            document.getElementById("contactPerson").value = "";
+            document.getElementById("email").value = "";
+            document.getElementById("phone").value = "";
+            document.getElementById("requestInput").value = "";
+
+            showToast(`Request submitted for ${company}.`);
+        }
+
+        function showToast(message) {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.innerText = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
