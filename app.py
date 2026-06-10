@@ -723,6 +723,14 @@ function showToast(msg, icon){
 
 
 def render_shell(content, title="JH Portal", sidebar_html="", topbar_title="", active_page=""):
+    _admin = current_admin()
+    _student = current_student()
+    if _admin:
+        logout_btn = '<a href="/logout" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:7px 14px;font-size:12.5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a>'
+    elif _student:
+        logout_btn = '<a href="/student-logout" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:7px 14px;font-size:12.5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a>'
+    else:
+        logout_btn = ""
     return render_template_string(f"""<!DOCTYPE html>
 <html data-theme="light" lang="en">
 <head>
@@ -753,6 +761,7 @@ def render_shell(content, title="JH Portal", sidebar_html="", topbar_title="", a
           <span class="notif-dot"></span>
         </button>
         <button class="theme-btn" id="themeBtn" onclick="toggleTheme()"></button>
+        {logout_btn}
       </div>
     </div>
     <div class="page">{content}</div>
@@ -807,9 +816,7 @@ def admin_sidebar(current_path=""):
         <div style="color:rgba(255,255,255,.35);font-size:10px">{admin['role_label'] if admin else ''}</div>
       </div>
     </div>
-    <a class="nav-item" href="/logout" style="margin-top:4px;color:#ff6b6b">
-      <span class="nav-icon">🚪</span><span class="nav-label">Log Out</span>
-    </a>
+
   </div>
 </aside>"""
 
@@ -863,9 +870,7 @@ def student_sidebar(current_path=""):
         <div style="color:rgba(255,255,255,.35);font-size:10px">{student['student_number'] if student else ''}</div>
       </div>
     </div>
-    <a class="nav-item" href="/student-logout" style="margin-top:4px;color:#ff6b6b">
-      <span class="nav-icon">🚪</span><span class="nav-label">Log Out</span>
-    </a>
+
   </div>
 </aside>"""
 
@@ -2008,7 +2013,7 @@ def admin_profile():
     <div class="card-title">Theme Preference</div>
     <p style="color:var(--text-2);font-size:13.5px;margin-bottom:16px">Toggle between light and dark mode using the button in the top bar, or click below.</p>
     <button class="btn btn-secondary" onclick="toggleTheme()">🌙 Toggle Dark / Light Mode</button>
-    <div style="margin-top:20px"><a href="/logout" class="btn btn-danger">🚪 Log Out</a></div>
+    
   </div>
 </div>
 """
@@ -2112,10 +2117,7 @@ def student_profile():
     <h1>My Profile</h1>
     <p>Manage your personal information</p>
   </div>
-  <a href="/student-logout" class="btn btn-danger" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Log Out
-  </a>
+
 </div>
 <div class="grid-2">
   <div class="card">
