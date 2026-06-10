@@ -43,14 +43,36 @@ MESSAGES_FILE = os.path.join(DATA_DIR, "messages.json")
 MEET_ROOMS_FILE = os.path.join(DATA_DIR, "meet_rooms.json")
 PENDING_FILE    = os.path.join(DATA_DIR, "pending_registrations.json")
 VERIF_FILE      = os.path.join(DATA_DIR, "verification_tokens.json")
+EMAIL_CONFIG_FILE = os.path.join(DATA_DIR, "email_config.json")
 
-# ── Email config (set these environment variables on your server) ──────────
-MAIL_HOST     = os.environ.get("MAIL_HOST", "smtp.gmail.com")
-MAIL_PORT     = int(os.environ.get("MAIL_PORT", "587"))
-MAIL_USER     = os.environ.get("MAIL_USER", "")        # e.g. noreply@jhholdings.co.za
-MAIL_PASS     = os.environ.get("MAIL_PASS", "")
-MAIL_FROM     = os.environ.get("MAIL_FROM", MAIL_USER)
+# ── Email config ──────────────────────────────────────────────────────────
+# Values are read live from data/email_config.json (set via Admin > Settings).
+# Environment variables are used as fallback if the file doesn't exist yet.
 APP_BASE_URL  = os.environ.get("APP_BASE_URL", "http://localhost:5000")
+
+def load_email_config():
+    """Read SMTP config from file, falling back to env vars."""
+    try:
+        if os.path.exists(EMAIL_CONFIG_FILE):
+            with open(EMAIL_CONFIG_FILE, "r") as f:
+                cfg = json.load(f)
+            if cfg.get("mail_user") and cfg.get("mail_pass"):
+                return cfg
+    except Exception:
+        pass
+    # Env var fallback
+    return {
+        "mail_host": os.environ.get("MAIL_HOST", "smtp.gmail.com"),
+        "mail_port": int(os.environ.get("MAIL_PORT", "587")),
+        "mail_user": os.environ.get("MAIL_USER", ""),
+        "mail_pass": os.environ.get("MAIL_PASS", ""),
+        "mail_from": os.environ.get("MAIL_FROM", os.environ.get("MAIL_USER", "")),
+    }
+
+def save_email_config(cfg):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(EMAIL_CONFIG_FILE, "w") as f:
+        json.dump(cfg, f, indent=2)
 
 # ── SMS / OTP config (Twilio) ─────────────────────────────────────────────
 TWILIO_SID    = os.environ.get("TWILIO_ACCOUNT_SID", "")
@@ -262,25 +284,32 @@ def verify_phone_otp(pending_id, otp):
 
 # ── Email sender ──────────────────────────────────────────────────────────
 def send_email(to_addr, subject, html_body):
-    """Send an email via SMTP. Silently logs failures if not configured."""
-    if not MAIL_USER or not MAIL_PASS:
+    """Send an email via SMTP. Reads credentials live from config file or env vars."""
+    cfg = load_email_config()
+    mail_user = cfg.get("mail_user", "")
+    mail_pass = cfg.get("mail_pass", "")
+    mail_from = cfg.get("mail_from", "") or mail_user
+    mail_host = cfg.get("mail_host", "smtp.gmail.com")
+    mail_port = int(cfg.get("mail_port", 587))
+
+    if not mail_user or not mail_pass:
         print(f"[EMAIL - not configured] To: {to_addr}  Subject: {subject}")
         return False
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"]    = MAIL_FROM
+        msg["From"]    = mail_from
         msg["To"]      = to_addr
         msg.attach(MIMEText(html_body, "html"))
-        with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as server:
+        with smtplib.SMTP(mail_host, mail_port) as server:
             server.ehlo()
             server.starttls()
-            server.login(MAIL_USER, MAIL_PASS)
-            server.sendmail(MAIL_FROM, to_addr, msg.as_string())
+            server.login(mail_user, mail_pass)
+            server.sendmail(mail_from, to_addr, msg.as_string())
         return True
     except Exception as e:
         print(f"[EMAIL ERROR] {e}")
-        return False
+        return str(e)
 
 def send_verification_email(to_addr, full_name, pending_id, token):
     link = f"{APP_BASE_URL}/verify-email?id={pending_id}&token={token}"
@@ -2056,6 +2085,53 @@ def api_reject_learner():
     return jsonify({"ok": True})
 
 
+@app.route("/api/admin/email-config", methods=["GET"])
+@admin_required
+def api_get_email_config():
+    cfg = load_email_config()
+    # Never expose the password
+    safe = {k: v for k, v in cfg.items() if k != "mail_pass"}
+    safe["has_password"] = bool(cfg.get("mail_pass"))
+    return jsonify({"ok": True, "config": safe})
+
+@app.route("/api/admin/email-config", methods=["POST"])
+@admin_required
+def api_save_email_config():
+    data = request.get_json(force=True) or {}
+    existing = load_email_config()
+    cfg = {
+        "mail_host": data.get("mail_host", "smtp.gmail.com").strip(),
+        "mail_port": int(data.get("mail_port", 587)),
+        "mail_user": data.get("mail_user", "").strip(),
+        "mail_from": data.get("mail_from", "").strip(),
+        # Keep existing password if not provided
+        "mail_pass": data.get("mail_pass", "").strip() or existing.get("mail_pass", ""),
+    }
+    if not cfg["mail_from"]:
+        cfg["mail_from"] = cfg["mail_user"]
+    save_email_config(cfg)
+    return jsonify({"ok": True})
+
+@app.route("/api/admin/email-test", methods=["POST"])
+@admin_required
+def api_test_email():
+    admin = current_admin()
+    to_addr = session.get("admin_email", "")
+    result = send_email(
+        to_addr,
+        "JH Portal — Email test ✅",
+        f"""<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;background:#fff;border-radius:12px;border:1px solid #e0e0e0">
+          <h2 style="color:#00A89D;font-family:sans-serif">Email is working! 🎉</h2>
+          <p style="color:#555;font-size:14px">This test was sent from the JH Student Portal admin panel.</p>
+          <p style="color:#999;font-size:12px">Sent to: {to_addr}</p>
+        </div>"""
+    )
+    if result is True:
+        return jsonify({"ok": True, "message": f"Test email sent to {to_addr}"})
+    else:
+        return jsonify({"ok": False, "error": str(result) if result else "SMTP credentials not configured."})
+
+
 # ── Admin routes ──────────────────────────────────────────────────────────────
 @app.route("/admin/dashboard")
 @admin_required
@@ -2577,9 +2653,105 @@ def admin_profile():
     <div class="card-title">Theme Preference</div>
     <p style="color:var(--text-2);font-size:13.5px;margin-bottom:16px">Toggle between light and dark mode using the button in the top bar, or click below.</p>
     <button class="btn btn-secondary" onclick="toggleTheme()">🌙 Toggle Dark / Light Mode</button>
-    
   </div>
 </div>
+
+<div class="card" style="margin-top:24px">
+  <div class="card-title">📧 Email Settings (SMTP)</div>
+  <p style="color:var(--text-2);font-size:13px;margin-bottom:20px">
+    Configure the SMTP account used to send verification and approval emails to learners.
+    For Gmail, use an <strong>App Password</strong> (not your regular password) — 
+    <a href="https://support.google.com/accounts/answer/185833" target="_blank" style="color:var(--brand)">learn how</a>.
+  </p>
+
+  <div id="emailConfigStatus" style="margin-bottom:16px"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div class="field">
+      <label>SMTP Host</label>
+      <input id="cfgHost" placeholder="smtp.gmail.com">
+    </div>
+    <div class="field">
+      <label>SMTP Port</label>
+      <input id="cfgPort" placeholder="587" type="number">
+    </div>
+    <div class="field">
+      <label>Login Email (MAIL_USER)</label>
+      <input id="cfgUser" placeholder="yourname@gmail.com" type="email">
+    </div>
+    <div class="field">
+      <label>From Address (optional)</label>
+      <input id="cfgFrom" placeholder="Same as login email">
+    </div>
+    <div class="field" style="grid-column:1/-1">
+      <label>App Password <span style="color:var(--text-3);font-weight:400">(leave blank to keep existing)</span></label>
+      <input id="cfgPass" placeholder="••••••••••••••••" type="password" autocomplete="new-password">
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="saveEmailConfig()">💾 Save Settings</button>
+    <button class="btn btn-secondary" onclick="testEmail()">📨 Send Test Email</button>
+  </div>
+  <div id="emailActionMsg" style="margin-top:12px;font-size:13px;min-height:20px"></div>
+</div>
+
+<script>
+async function loadEmailConfig() {{
+  const res = await fetch('/api/admin/email-config');
+  const data = await res.json();
+  if (!data.ok) return;
+  const c = data.config;
+  document.getElementById('cfgHost').value = c.mail_host || 'smtp.gmail.com';
+  document.getElementById('cfgPort').value = c.mail_port || 587;
+  document.getElementById('cfgUser').value = c.mail_user || '';
+  document.getElementById('cfgFrom').value = c.mail_from || '';
+  const status = document.getElementById('emailConfigStatus');
+  if (c.mail_user && c.has_password) {{
+    status.innerHTML = '<span style="color:#8DC63F;font-size:13px">✅ Email is configured — credentials saved</span>';
+  }} else {{
+    status.innerHTML = '<span style="color:#F5C518;font-size:13px">⚠️ Email not fully configured — learner emails will not send</span>';
+  }}
+}}
+
+async function saveEmailConfig() {{
+  const msg = document.getElementById('emailActionMsg');
+  msg.textContent = 'Saving...';
+  const res = await fetch('/api/admin/email-config', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{
+      mail_host: document.getElementById('cfgHost').value.trim(),
+      mail_port: document.getElementById('cfgPort').value,
+      mail_user: document.getElementById('cfgUser').value.trim(),
+      mail_from: document.getElementById('cfgFrom').value.trim(),
+      mail_pass: document.getElementById('cfgPass').value,
+    }})
+  }});
+  const data = await res.json();
+  if (data.ok) {{
+    msg.innerHTML = '<span style="color:#8DC63F">✅ Settings saved.</span>';
+    document.getElementById('cfgPass').value = '';
+    loadEmailConfig();
+  }} else {{
+    msg.innerHTML = '<span style="color:#dc3535">❌ ' + (data.error || 'Error saving.') + '</span>';
+  }}
+}}
+
+async function testEmail() {{
+  const msg = document.getElementById('emailActionMsg');
+  msg.textContent = 'Sending test email...';
+  const res = await fetch('/api/admin/email-test', {{ method: 'POST' }});
+  const data = await res.json();
+  if (data.ok) {{
+    msg.innerHTML = '<span style="color:#8DC63F">✅ ' + data.message + '</span>';
+  }} else {{
+    msg.innerHTML = '<span style="color:#dc3535">❌ ' + (data.error || 'Failed.') + '</span>';
+  }}
+}}
+
+loadEmailConfig();
+</script>
 """
     return render_shell(content, "Settings", admin_sidebar("/admin/profile"), "Settings")
 
