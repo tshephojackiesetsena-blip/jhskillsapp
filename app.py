@@ -3397,25 +3397,29 @@ async function joinMeet() {{
 }}
 
 function initPeer() {{
-  peer = new Peer(undefined, {{
-    host: '0.peerjs.com',
-    port: 443,
-    secure: true,
-    path: '/',
-    config: {{iceServers:[{{urls:'stun:stun.l.google.com:19302'}},{{urls:'stun:stun1.l.google.com:19302'}}]}}
+  peer = new Peer({{
+    config: {{iceServers:[
+      {{urls:'stun:stun.l.google.com:19302'}},
+      {{urls:'stun:stun1.l.google.com:19302'}},
+      {{urls:'stun:stun2.l.google.com:19302'}}
+    ]}}
   }});
 
   peer.on('open', id => {{
     myPeerId = id;
+    // Update local tile participant key now that peer ID is known
+    delete participants[null];
+    participants[myPeerId] = MY_NAME_MEET + ' (You)';
+    renderParticipants();
     setStatus('Connected — Share room ID to invite others', '#00A89D');
     document.getElementById('connStatus').textContent = '🟢 Ready';
     registerInRoom(id);
     pollRoomPeers();
   }});
 
-  peer.on('call', call => {{
-    call.answer(localStream || new MediaStream());
-    handleCall(call);
+  peer.on('call', incomingCall => {{
+    incomingCall.answer(localStream || new MediaStream());
+    handleCall(incomingCall);
   }});
 
   peer.on('connection', conn => {{
@@ -3424,6 +3428,7 @@ function initPeer() {{
 
   peer.on('error', e => {{
     setStatus('Connection issue: ' + e.type, '#dc3535');
+    console.error('PeerJS error', e);
   }});
 }}
 
@@ -3453,7 +3458,9 @@ function pollRoomPeers() {{
 
 function callPeer(peerId, peerName) {{
   if(calls[peerId]) return;
+  calls[peerId] = true; // mark immediately to block duplicate calls from poll
   const call = peer.call(peerId, localStream || new MediaStream(), {{metadata:{{name:MY_NAME_MEET}}}});
+  if(!call) {{ delete calls[peerId]; return; }}
   handleCall(call, peerName);
 
   const conn = peer.connect(peerId);
@@ -3464,7 +3471,7 @@ function callPeer(peerId, peerName) {{
 }}
 
 function handleCall(call, remoteName) {{
-  calls[call.peer] = call;
+  calls[call.peer] = call; // replace any placeholder
   call.on('stream', remoteStream => {{
     const name = remoteName || call.metadata?.name || 'Participant';
     addRemoteTile(call.peer, name, remoteStream);
@@ -3482,6 +3489,15 @@ function handleCall(call, remoteName) {{
     delete calls[call.peer];
     updateGrid();
   }});
+  // If remote has no video tracks, stream event may not fire — show avatar tile after timeout
+  setTimeout(() => {{
+    if(!document.getElementById('tile-'+call.peer) && calls[call.peer] === call) {{
+      const name = remoteName || call.metadata?.name || 'Participant';
+      addAvatarTile(call.peer, name);
+      addParticipant(call.peer, name);
+      updateGrid();
+    }}
+  }}, 5000);
 }}
 
 function handleDataMsg(data, fromPeer) {{
@@ -3504,9 +3520,15 @@ function addLocalTile() {{
     v.srcObject = localStream; v.style.cssText='width:100%;height:100%;object-fit:cover';
     tile.appendChild(v);
   }} else {{
-    tile.innerHTML = '<div class="meet-avatar-tile"><div class="meet-avatar-circle">'+MY_INITIALS+'</div></div>';
+    const av = document.createElement('div');
+    av.className = 'meet-avatar-tile';
+    av.innerHTML = '<div class="meet-avatar-circle">'+MY_INITIALS+'</div>';
+    tile.appendChild(av);
   }}
-  tile.innerHTML += '<div class="tile-label">'+MY_NAME_MEET+' (You)</div>';
+  const lbl = document.createElement('div');
+  lbl.className = 'tile-label';
+  lbl.textContent = MY_NAME_MEET + ' (You)';
+  tile.appendChild(lbl);
   document.getElementById('videoGrid').appendChild(tile);
   addParticipant(myPeerId, MY_NAME_MEET + ' (You)');
   updateGrid();
@@ -3521,8 +3543,27 @@ function addRemoteTile(peerId, name, stream) {{
   v.autoplay = true; v.playsInline = true;
   v.srcObject = stream; v.style.cssText='width:100%;height:100%;object-fit:cover';
   tile.appendChild(v);
+  const lbl = document.createElement('div');
+  lbl.className = 'tile-label';
+  lbl.textContent = name;
+  tile.appendChild(lbl);
+  document.getElementById('videoGrid').appendChild(tile);
+}}
+
+function addAvatarTile(peerId, name) {{
+  removeTile(peerId);
+  const tile = document.createElement('div');
+  tile.className = 'meet-video-tile';
+  tile.id = 'tile-'+peerId;
+  const av = document.createElement('div');
+  av.className = 'meet-avatar-tile';
   const initials = name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
-  tile.innerHTML += '<div class="tile-label">'+name+'</div>';
+  av.innerHTML = '<div class="meet-avatar-circle">'+initials+'</div>';
+  tile.appendChild(av);
+  const lbl = document.createElement('div');
+  lbl.className = 'tile-label';
+  lbl.textContent = name;
+  tile.appendChild(lbl);
   document.getElementById('videoGrid').appendChild(tile);
 }}
 
@@ -3550,10 +3591,31 @@ function toggleCam() {{
   if(localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
   document.getElementById('camBtn').className = 'ctrl-btn '+(camOn?'active':'off');
   document.getElementById('camBtn').textContent = camOn?'📷':'🚫';
+
   const localTile = document.getElementById('tile-local');
-  if(localTile) {{
+  if(!localTile) return;
+
+  if(!camOn) {{
+    // Replace video with avatar
     const v = localTile.querySelector('video');
-    if(v) v.style.display = camOn ? '' : 'none';
+    if(v) v.remove();
+    if(!localTile.querySelector('.meet-avatar-tile')) {{
+      const av = document.createElement('div');
+      av.className = 'meet-avatar-tile';
+      av.innerHTML = '<div class="meet-avatar-circle">'+MY_INITIALS+'</div>';
+      localTile.insertBefore(av, localTile.firstChild);
+    }}
+  }} else if(localStream && localStream.getVideoTracks().length > 0) {{
+    // Replace avatar with live video
+    const av = localTile.querySelector('.meet-avatar-tile');
+    if(av) av.remove();
+    if(!localTile.querySelector('video')) {{
+      const v = document.createElement('video');
+      v.autoplay = true; v.muted = true; v.playsInline = true;
+      v.srcObject = localStream;
+      v.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      localTile.insertBefore(v, localTile.firstChild);
+    }}
   }}
 }}
 
@@ -3733,6 +3795,31 @@ def api_meet_leave():
 
 
 if __name__ == "__main__":
-    import threading, webbrowser
-    threading.Timer(1.5, lambda: webbrowser.open("http://localhost:5000")).start()
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    import threading, webbrowser, sys
+
+    use_https = "--https" in sys.argv
+
+    if use_https:
+        # Generate a self-signed cert so camera/mic work over HTTPS
+        import subprocess, os
+        cert_file = os.path.join(app.root_path, "cert.pem")
+        key_file  = os.path.join(app.root_path, "key.pem")
+        if not (os.path.exists(cert_file) and os.path.exists(key_file)):
+            subprocess.run([
+                "openssl", "req", "-x509", "-newkey", "rsa:2048",
+                "-keyout", key_file, "-out", cert_file,
+                "-days", "365", "-nodes",
+                "-subj", "/CN=localhost"
+            ], check=True)
+        ssl_context = (cert_file, key_file)
+        url = "https://localhost:5000"
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        print(f"\n  Running with HTTPS — camera & microphone will work.")
+        print(f"  Open: {url}  (accept the self-signed certificate warning)\n")
+        app.run(host="0.0.0.0", port=5000, debug=False, ssl_context=ssl_context)
+    else:
+        url = "http://localhost:5000"
+        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        print(f"\n  Running on HTTP.  Camera & microphone work on localhost.")
+        print(f"  For remote access with camera/mic, restart with:  python app.py --https\n")
+        app.run(host="0.0.0.0", port=5000, debug=False)
