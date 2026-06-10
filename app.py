@@ -3570,6 +3570,19 @@ def _admin_meet_page(sidebar_fn, sidebar_path, base_route):
 
       <!-- Active rooms -->
       <div class="meet-active-rooms" id="activeRooms"></div>
+
+      <!-- Rejoin last meeting banner -->
+      <div id="rejoinBanner" style="display:none;margin-top:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 18px;width:100%;box-sizing:border-box">
+        <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Last meeting</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span id="rejoinTitle" style="flex:1;font-size:13.5px;color:#ccc;min-width:80px"></span>
+          <span id="rejoinCode" style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:.12em;color:#00A89D"></span>
+          <button onclick="doRejoin()"
+            style="background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap">
+            ↩ Rejoin
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -3650,13 +3663,30 @@ async function endMeeting() {{
 }}
 
 function leaveMeet() {{
+  // Capture last room before clearing
+  const lastRoom = currentCode ? {{ code: currentCode, jitsiRoom: currentRoom, title: document.getElementById('roomBadge').textContent.replace('Room: ', '') }} : null;
   document.getElementById('jitsiFrame').src = '';
   document.getElementById('meetingPanel').classList.remove('shown');
   document.getElementById('lobbyPanel').style.display = 'flex';
   currentRoom = null; currentCode = null;
   document.getElementById('codeArea').style.display = 'none';
   document.getElementById('meetingTitle').value = '';
+  if (lastRoom) {{
+    document.getElementById('rejoinTitle').textContent = lastRoom.title;
+    document.getElementById('rejoinCode').textContent = lastRoom.code;
+    document.getElementById('rejoinBanner').style.display = 'block';
+    // Store for doRejoin
+    window._adminLastRoom = lastRoom;
+  }}
   loadActiveRooms();
+}}
+
+function doRejoin() {{
+  const r = window._adminLastRoom;
+  if (!r) return;
+  currentCode = r.code;
+  currentRoom = r.jitsiRoom;
+  joinAsAdmin();
 }}
 
 function copyRoom() {{
