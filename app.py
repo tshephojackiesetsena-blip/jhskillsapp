@@ -134,11 +134,7 @@ ADMIN_USERS = {
     "skills.admin@jhholdings.co.za": {"password": "1234", "name": "Lerato Khumalo", "role_label": "Sub Admin", "default_route": "admin_dashboard"},
 }
 
-STUDENT_SEED = [
-    {"id": "1001", "student_number": "2026001001", "full_name": "Thabo Mokoena", "email": "thabo.mokoena@student.jh.co.za", "phone": "071 234 5678", "id_number": "9801015800088", "gender": "Male", "address": "Johannesburg", "employment": "Unemployed", "qualification": "Diploma in Information Technology", "faculty": "Faculty of Applied Sciences", "programme": "Digital Skills Cohort 2026", "coordinator": "Lerato Khumalo", "location": "Johannesburg Campus", "start_date": "2026-03-01", "status": "Active", "username": "learner.jh-1001", "password": "Learner@1001", "campus": "Johannesburg Campus", "year_level": "Year 2", "emergency_contact_name": "Nomsa Mokoena", "emergency_contact_phone": "082 456 7800", "emergency_contact_relationship": "Parent", "modules": ["Network Systems", "Database Systems", "Information Security", "English Communication"], "tuition_balance": "R18,450", "bursary_status": "Provisionally approved", "registration_status": "Registered", "lms_link": "https://canvas.instructure.com/"},
-    {"id": "1002", "student_number": "2026001002", "full_name": "Ayanda Dlamini", "email": "ayanda.dlamini@student.jh.co.za", "phone": "082 445 1199", "id_number": "9905220485087", "gender": "Female", "address": "Pretoria", "employment": "Employed", "qualification": "Business Administration NQF 4", "faculty": "Faculty of Management Studies", "programme": "Business Administration Learnership", "coordinator": "Ayanda Mokoena", "location": "Pretoria Campus", "start_date": "2026-03-04", "status": "Active", "username": "learner.jh-1002", "password": "Learner@1002", "campus": "Pretoria Campus", "year_level": "Year 1", "emergency_contact_name": "Thandi Dlamini", "emergency_contact_phone": "073 555 1122", "emergency_contact_relationship": "Sister", "modules": ["Business Communication", "Office Practice", "Customer Service", "Workplace Readiness"], "tuition_balance": "R7,980", "bursary_status": "Approved", "registration_status": "Registered", "lms_link": "https://canvas.instructure.com/"},
-    {"id": "1005", "student_number": "2026001005", "full_name": "Bella", "email": "bella@student.jh.co.za", "phone": "", "id_number": "", "gender": "", "address": "", "employment": "Unemployed", "qualification": "", "faculty": "", "programme": "", "coordinator": "", "location": "", "start_date": "2026-01-01", "status": "Active", "username": "learner.jh-1005", "password": "Bella0", "campus": "", "year_level": "Year 1", "emergency_contact_name": "", "emergency_contact_phone": "", "emergency_contact_relationship": "", "modules": [], "tuition_balance": "R0", "bursary_status": "Pending", "registration_status": "Registered", "lms_link": "https://canvas.instructure.com/"},
-]
+STUDENT_SEED = []  # No pre-loaded learners — all registrations must be approved by admin
 
 
 # ── Storage helpers ─────────────────────────────────────────────────────────
@@ -4147,6 +4143,23 @@ def student_meet():
 def admin_meet():
     return _admin_meet_page(admin_sidebar, "/admin/meet", "/admin/meet")
 
+
+
+# ── Startup migration: remove pre-seeded learners so only admin-approved accounts exist ──
+def _purge_seed_learners():
+    """Remove hardcoded seed IDs (1001, 1002) from students.json on startup."""
+    SEED_IDS = {"1001", "1002"}
+    try:
+        ensure_storage()
+        students = load_students()
+        cleaned = [s for s in students if str(s.get("id", "")) not in SEED_IDS]
+        if len(cleaned) != len(students):
+            save_students(cleaned)
+    except Exception:
+        pass
+
+with app.app_context():
+    _purge_seed_learners()
 
 
 if __name__ == "__main__":
