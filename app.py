@@ -3558,6 +3558,31 @@ def _admin_meet_page(sidebar_fn, sidebar_path, base_route):
         <button class="meet-create-btn" onclick="createMeeting()">🎥 Create</button>
       </div>
 
+      <!-- Rejoin existing meeting -->
+      <div style="margin-bottom:20px;width:100%">
+        <button onclick="toggleRejoinInput()" id="rejoinToggleBtn"
+          style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px 16px;color:#aaa;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;text-align:left;display:flex;align-items:center;gap:8px"
+          onmouseover="this.style.borderColor='#00A89D';this.style.color='#00A89D'"
+          onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">
+          <span>↩</span> Rejoin Existing Meeting
+        </button>
+        <div id="rejoinInputArea" style="display:none;margin-top:8px;background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:14px">
+          <p style="color:#666;font-size:11.5px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.07em">Enter the meeting code</p>
+          <div style="display:flex;gap:8px">
+            <input id="rejoinCodeInput" type="text" maxlength="6" placeholder="e.g. A1B2C3"
+              style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px 14px;color:#fff;font-size:18px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;outline:none;font-family:'Syne',sans-serif"
+              oninput="this.value=this.value.toUpperCase()"
+              onkeydown="if(event.key==='Enter')rejoinByCode()"
+              onfocus="this.style.borderColor='#00A89D'" onblur="this.style.borderColor='#333'">
+            <button onclick="rejoinByCode()"
+              style="background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap">
+              Join →
+            </button>
+          </div>
+          <div id="rejoinCodeError" style="color:#dc3535;font-size:12px;margin-top:8px;min-height:16px"></div>
+        </div>
+      </div>
+
       <!-- Code display -->
       <div id="codeArea" style="display:none;margin-bottom:20px">
         <p style="color:#aaa;font-size:12px;margin-bottom:8px">Share this code with students:</p>
@@ -3686,6 +3711,37 @@ function doRejoin() {{
   if (!r) return;
   currentCode = r.code;
   currentRoom = r.jitsiRoom;
+  joinAsAdmin();
+}}
+
+function toggleRejoinInput() {{
+  const area = document.getElementById('rejoinInputArea');
+  const open = area.style.display === 'block';
+  area.style.display = open ? 'none' : 'block';
+  if (!open) document.getElementById('rejoinCodeInput').focus();
+}}
+
+async function rejoinByCode() {{
+  const code = document.getElementById('rejoinCodeInput').value.trim().toUpperCase();
+  document.getElementById('rejoinCodeError').textContent = '';
+  if (code.length !== 6) {{
+    document.getElementById('rejoinCodeError').textContent = 'Please enter the full 6-character code.';
+    return;
+  }}
+  const res = await fetch('/api/meet/join', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{code}})
+  }});
+  const data = await res.json();
+  if (!data.ok) {{
+    document.getElementById('rejoinCodeError').textContent = data.error || 'Invalid or expired code.';
+    return;
+  }}
+  currentCode = code;
+  currentRoom = data.room.jitsi_room;
+  document.getElementById('rejoinInputArea').style.display = 'none';
+  document.getElementById('rejoinCodeInput').value = '';
   joinAsAdmin();
 }}
 
