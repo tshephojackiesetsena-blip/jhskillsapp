@@ -1,5 +1,7 @@
 import json
 import os
+import secrets
+import string
 from datetime import datetime
 from functools import wraps
 
@@ -135,6 +137,37 @@ def get_student_by_username(username):
     for s in load_students():
         if s["username"].lower() == username: return s
     return None
+
+def load_meet_rooms(): return load_json(MEET_ROOMS_FILE, {})
+def save_meet_rooms(r): save_json(MEET_ROOMS_FILE, r)
+
+def generate_join_code():
+    """Generate a short 6-character alphanumeric join code."""
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(6))
+
+def create_meet_room(title, creator_name):
+    """Admin creates a meeting room; returns the join code and jitsi room name."""
+    rooms = load_meet_rooms()
+    for _ in range(20):
+        code = generate_join_code()
+        if code not in rooms:
+            break
+    jitsi_room = "jh-" + secrets.token_hex(8)
+    rooms[code] = {
+        "code": code,
+        "title": title or "JH Meeting",
+        "jitsi_room": jitsi_room,
+        "creator": creator_name,
+        "created_at": int(datetime.now().timestamp()),
+        "active": True,
+    }
+    save_meet_rooms(rooms)
+    return rooms[code]
+
+def get_room_by_code(code):
+    rooms = load_meet_rooms()
+    return rooms.get(code.strip().upper())
 
 def load_learner_document_store(): return load_json(LEARNER_DOCUMENTS_FILE, {})
 def save_learner_document_store(s): save_json(LEARNER_DOCUMENTS_FILE, s)
@@ -2845,6 +2878,55 @@ def api_messages_unread():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# MEET ROOM API  (code-based access)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/meet/create", methods=["POST"])
+@admin_required
+def api_meet_create():
+    caller = get_caller_identity()
+    data = request.get_json(force=True) or {}
+    title = data.get("title", "").strip()
+    room = create_meet_room(title, caller["name"] if caller else "Admin")
+    return jsonify({"ok": True, "room": room})
+
+@app.route("/api/meet/join", methods=["POST"])
+def api_meet_join():
+    caller = get_caller_identity()
+    if not caller:
+        return jsonify({"ok": False, "error": "Not logged in"}), 401
+    data = request.get_json(force=True) or {}
+    code = data.get("code", "").strip().upper()
+    if not code:
+        return jsonify({"ok": False, "error": "No code provided"}), 400
+    room = get_room_by_code(code)
+    if not room:
+        return jsonify({"ok": False, "error": "Invalid code"}), 404
+    if not room.get("active"):
+        return jsonify({"ok": False, "error": "This meeting has ended"}), 410
+    return jsonify({"ok": True, "room": room})
+
+@app.route("/api/meet/end", methods=["POST"])
+@admin_required
+def api_meet_end():
+    data = request.get_json(force=True) or {}
+    code = data.get("code", "").strip().upper()
+    rooms = load_meet_rooms()
+    if code in rooms:
+        rooms[code]["active"] = False
+        save_meet_rooms(rooms)
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "error": "Room not found"}), 404
+
+@app.route("/api/meet/rooms")
+@admin_required
+def api_meet_rooms():
+    rooms = load_meet_rooms()
+    active = [r for r in rooms.values() if r.get("active")]
+    active.sort(key=lambda r: r.get("created_at", 0), reverse=True)
+    return jsonify({"ok": True, "rooms": active})
+
+# ══════════════════════════════════════════════════════════════════════════════
 # VIDEO MEET (Jitsi Meet — camera & mic work on any HTTPS connection)
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -2870,14 +2952,221 @@ MEET_PAGE_CSS = """
 .meet-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
 """
 
-def _meet_page(sidebar_fn, sidebar_path, base_route):
+def _admin_meet_page(sidebar_fn, sidebar_path, base_route):
     caller = get_caller_identity()
-    user_name = caller["name"].replace("'", "\'") if caller else "Guest"
-    back_url  = base_route.replace("/meet", "/messages")
+    user_name = caller["name"].replace("'", "\\'") if caller else "Admin"
+    back_url = base_route.replace("/meet", "/messages")
     content = f"""
 <style>
 :root{{--jh-grad:linear-gradient(135deg,#8DC63F 0%,#00A89D 60%,#2D6A4F 100%)}}
 {MEET_PAGE_CSS}
+.meet-code-badge{{
+  display:inline-block;font-size:32px;font-weight:800;letter-spacing:.18em;
+  font-family:'Syne',sans-serif;color:#fff;background:#1a1a1a;
+  border:2px solid #00A89D;border-radius:12px;padding:14px 28px;
+  text-align:center;cursor:pointer;transition:background .2s;user-select:all;
+}}
+.meet-code-badge:hover{{background:#222}}
+.meet-code-hint{{font-size:11.5px;color:#555;margin-top:10px;line-height:1.6}}
+.meet-create-form{{display:flex;gap:8px;margin-bottom:16px;width:100%}}
+.meet-create-form input{{flex:1;background:#1a1a1a;border:1px solid #333;border-radius:8px;
+  padding:10px 14px;color:#fff;font-size:13px;outline:none;font-family:'DM Sans',sans-serif}}
+.meet-create-form input:focus{{border-color:#00A89D}}
+.meet-create-btn{{background:var(--jh-grad);color:#fff;border:none;border-radius:8px;
+  padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;
+  font-family:'Syne',sans-serif;transition:opacity .2s}}
+.meet-create-btn:hover{{opacity:.85}}
+.meet-active-rooms{{margin-top:16px;width:100%;text-align:left}}
+.meet-room-row{{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;
+  padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}}
+.meet-room-row-code{{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;
+  letter-spacing:.12em;color:#00A89D;min-width:70px}}
+.meet-room-row-title{{flex:1;font-size:13px;color:#ccc}}
+.meet-room-row-btn{{background:none;border:1px solid #333;border-radius:6px;
+  color:#888;font-size:11px;padding:4px 10px;cursor:pointer;transition:all .2s}}
+.meet-room-row-btn:hover{{border-color:#00A89D;color:#00A89D}}
+.meet-room-row-end{{background:none;border:1px solid #333;border-radius:6px;
+  color:#888;font-size:11px;padding:4px 10px;cursor:pointer;transition:all .2s}}
+.meet-room-row-end:hover{{border-color:#dc3535;color:#dc3535}}
+</style>
+<div class="meet-shell" id="meetShell">
+
+  <div class="meet-topbar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00A89D" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    <span class="meet-topbar-title">JH Meet — Admin</span>
+    <a href="{back_url}" style="font-size:12px;color:#666;text-decoration:none;padding:4px 10px;background:#1a1a1a;border:1px solid #333;border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00A89D'" onmouseout="this.style.color='#666'">← Back</a>
+  </div>
+
+  <!-- Lobby -->
+  <div class="meet-lobby" id="lobbyPanel">
+    <div class="meet-lobby-card" style="max-width:520px">
+      <div style="font-size:48px;margin-bottom:16px">📹</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px">Start a Meeting</h2>
+      <p style="color:#888;font-size:13px;margin-bottom:24px">Create a meeting and share the join code with students.</p>
+
+      <div class="meet-create-form">
+        <input id="meetingTitle" type="text" placeholder="Meeting title (optional)">
+        <button class="meet-create-btn" onclick="createMeeting()">🎥 Create</button>
+      </div>
+
+      <!-- Code display -->
+      <div id="codeArea" style="display:none;margin-bottom:20px">
+        <p style="color:#aaa;font-size:12px;margin-bottom:8px">Share this code with students:</p>
+        <div class="meet-code-badge" id="codeBadge" onclick="copyCode()" title="Click to copy">------</div>
+        <div class="meet-code-hint">Click the code to copy it &nbsp;·&nbsp; Students enter it on their Meet page</div>
+        <button onclick="joinAsAdmin()" style="margin-top:16px;background:var(--jh-grad);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .2s">
+          Enter Meeting →
+        </button>
+      </div>
+
+      <!-- Active rooms -->
+      <div class="meet-active-rooms" id="activeRooms"></div>
+    </div>
+  </div>
+
+  <!-- Active meeting -->
+  <div class="meet-active" id="meetingPanel">
+    <div class="meet-active-bar">
+      <span id="roomBadge" class="meet-room-badge" onclick="copyRoom()" title="Click to copy">Room: –</span>
+      <span id="codeLabel" style="font-size:12px;color:#666;margin-left:4px"></span>
+      <span style="flex:1"></span>
+      <button onclick="endMeeting()" style="background:#dc3535;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:8px">End Meeting</button>
+      <button onclick="leaveMeet()" style="background:#333;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Leave</button>
+    </div>
+    <div class="meet-frame-wrap">
+      <iframe id="jitsiFrame" allow="camera; microphone; display-capture; fullscreen; autoplay" allowfullscreen></iframe>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MY_NAME_MEET = '{user_name}';
+const BACK_URL = '{back_url}';
+let currentRoom = null;
+let currentCode = null;
+
+async function createMeeting() {{
+  const title = document.getElementById('meetingTitle').value.trim();
+  const res = await fetch('/api/meet/create', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{title}})
+  }});
+  const data = await res.json();
+  if (!data.ok) {{ alert('Could not create meeting.'); return; }}
+  currentCode = data.room.code;
+  currentRoom = data.room.jitsi_room;
+  document.getElementById('codeBadge').textContent = currentCode;
+  document.getElementById('codeArea').style.display = 'block';
+  loadActiveRooms();
+}}
+
+function copyCode() {{
+  const code = document.getElementById('codeBadge').textContent;
+  navigator.clipboard.writeText(code).then(() => {{
+    const b = document.getElementById('codeBadge');
+    const orig = b.textContent;
+    b.textContent = 'Copied ✓';
+    setTimeout(() => b.textContent = orig, 1800);
+  }});
+}}
+
+function joinAsAdmin() {{
+  if (!currentRoom) return;
+  document.getElementById('roomBadge').textContent = 'Room: ' + currentRoom;
+  document.getElementById('codeLabel').textContent = '· Code: ' + currentCode;
+  document.getElementById('lobbyPanel').style.display = 'none';
+  const panel = document.getElementById('meetingPanel');
+  panel.classList.add('shown');
+  const jitsiUrl = 'https://meet.jit.si/' + encodeURIComponent(currentRoom)
+    + '#userInfo.displayName="' + encodeURIComponent(MY_NAME_MEET) + '"'
+    + '&config.prejoinPageEnabled=false'
+    + '&config.startWithAudioMuted=false'
+    + '&config.startWithVideoMuted=false'
+    + '&interfaceConfig.SHOW_JITSI_WATERMARK=false'
+    + '&interfaceConfig.SHOW_BRAND_WATERMARK=false';
+  document.getElementById('jitsiFrame').src = jitsiUrl;
+}}
+
+async function endMeeting() {{
+  if (currentCode && confirm('End this meeting for everyone?')) {{
+    await fetch('/api/meet/end', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{code: currentCode}})
+    }});
+    leaveMeet();
+  }}
+}}
+
+function leaveMeet() {{
+  document.getElementById('jitsiFrame').src = '';
+  document.getElementById('meetingPanel').classList.remove('shown');
+  document.getElementById('lobbyPanel').style.display = 'flex';
+  currentRoom = null; currentCode = null;
+  document.getElementById('codeArea').style.display = 'none';
+  document.getElementById('meetingTitle').value = '';
+  loadActiveRooms();
+}}
+
+function copyRoom() {{
+  if (!currentRoom) return;
+  navigator.clipboard.writeText(currentRoom);
+}}
+
+async function loadActiveRooms() {{
+  const res = await fetch('/api/meet/rooms');
+  const data = await res.json();
+  const el = document.getElementById('activeRooms');
+  if (!data.ok || !data.rooms.length) {{ el.innerHTML = ''; return; }}
+  el.innerHTML = '<p style="color:#555;font-size:11px;margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Active Meetings</p>'
+    + data.rooms.map(r => `
+      <div class="meet-room-row">
+        <span class="meet-room-row-code">${{r.code}}</span>
+        <span class="meet-room-row-title">${{r.title}}</span>
+        <button class="meet-room-row-btn" onclick="rejoinRoom('${{r.code}}','${{r.jitsi_room}}')">Rejoin</button>
+        <button class="meet-room-row-end" onclick="endRoomByCode('${{r.code}}')">End</button>
+      </div>`).join('');
+}}
+
+function rejoinRoom(code, jitsiRoom) {{
+  currentCode = code; currentRoom = jitsiRoom;
+  joinAsAdmin();
+}}
+
+async function endRoomByCode(code) {{
+  if (!confirm('End this meeting?')) return;
+  await fetch('/api/meet/end', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{code}})
+  }});
+  loadActiveRooms();
+}}
+
+loadActiveRooms();
+</script>
+"""
+    return render_shell(content, "JH Meet", sidebar_fn(sidebar_path), "JH Meet")
+
+
+def _student_meet_page(sidebar_fn, sidebar_path, base_route):
+    caller = get_caller_identity()
+    user_name = caller["name"].replace("'", "\\'") if caller else "Guest"
+    back_url = base_route.replace("/meet", "/messages")
+    content = f"""
+<style>
+:root{{--jh-grad:linear-gradient(135deg,#8DC63F 0%,#00A89D 60%,#2D6A4F 100%)}}
+{MEET_PAGE_CSS}
+.meet-code-input{{
+  width:100%;background:#1a1a1a;border:2px solid #333;border-radius:10px;
+  padding:14px;color:#fff;font-size:28px;font-weight:800;letter-spacing:.18em;
+  font-family:'Syne',sans-serif;text-align:center;outline:none;
+  text-transform:uppercase;margin-bottom:12px;box-sizing:border-box;
+}}
+.meet-code-input:focus{{border-color:#00A89D}}
+.meet-code-error{{color:#dc3535;font-size:12.5px;margin-bottom:10px;min-height:18px}}
 </style>
 <div class="meet-shell" id="meetShell">
 
@@ -2891,18 +3180,21 @@ def _meet_page(sidebar_fn, sidebar_path, base_route):
   <div class="meet-lobby" id="lobbyPanel">
     <div class="meet-lobby-card">
       <div style="font-size:48px;margin-bottom:16px">📹</div>
-      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px">JH Meet</h2>
-      <p style="color:#888;font-size:13.5px;margin-bottom:28px">Secure video meetings — camera &amp; mic work instantly</p>
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px">Join a Meeting</h2>
+      <p style="color:#888;font-size:13.5px;margin-bottom:24px">Enter the 6-character code from your moderator.</p>
 
-      <input id="roomIdInput" class="meet-room-input" type="text"
-        placeholder="Room name (leave blank to create new)">
+      <input id="codeInput" class="meet-code-input" type="text" maxlength="6"
+        placeholder="ABC123" autocomplete="off" spellcheck="false"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')joinWithCode()">
 
-      <button class="meet-join-btn" onclick="joinMeet()">
-        🎥 &nbsp;Join / Start Meeting
+      <div class="meet-code-error" id="codeError"></div>
+
+      <button class="meet-join-btn" onclick="joinWithCode()">
+        🎥 &nbsp;Join Meeting
       </button>
       <div class="meet-hint">
-        Share the room name with others so they can join.<br>
-        Camera &amp; microphone are handled by the meeting itself.
+        Your moderator will share the code before the meeting starts.
       </div>
     </div>
   </div>
@@ -2910,7 +3202,7 @@ def _meet_page(sidebar_fn, sidebar_path, base_route):
   <!-- Active meeting -->
   <div class="meet-active" id="meetingPanel">
     <div class="meet-active-bar">
-      <span id="roomBadge" class="meet-room-badge" onclick="copyRoom()" title="Click to copy">Room: –</span>
+      <span id="roomBadge" class="meet-room-badge">In Meeting</span>
       <span style="flex:1"></span>
       <button onclick="leaveMeet()" style="background:#dc3535;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Leave</button>
     </div>
@@ -2923,58 +3215,44 @@ def _meet_page(sidebar_fn, sidebar_path, base_route):
 
 <script>
 const MY_NAME_MEET = '{user_name}';
-const BACK_URL = '{back_url}';
-let currentRoom = null;
 
-// Pre-fill room from URL param
-const urlParams = new URLSearchParams(window.location.search);
-const roomParam = urlParams.get('room');
-if (roomParam) document.getElementById('roomIdInput').value = roomParam;
-
-function sanitizeRoom(name) {{
-  // Jitsi room names: letters, numbers, hyphens only, no spaces
-  return name.trim().replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 64) || 'jh-meet-' + Date.now();
-}}
-
-function joinMeet() {{
-  const raw = document.getElementById('roomIdInput').value.trim();
-  currentRoom = sanitizeRoom(raw || ('jh-meet-' + Date.now()));
-
-  document.getElementById('roomBadge').textContent = 'Room: ' + currentRoom;
+async function joinWithCode() {{
+  const code = document.getElementById('codeInput').value.trim().toUpperCase();
+  document.getElementById('codeError').textContent = '';
+  if (code.length !== 6) {{
+    document.getElementById('codeError').textContent = 'Please enter the full 6-character code.';
+    return;
+  }}
+  const res = await fetch('/api/meet/join', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{code}})
+  }});
+  const data = await res.json();
+  if (!data.ok) {{
+    document.getElementById('codeError').textContent = data.error || 'Invalid or expired code.';
+    return;
+  }}
+  const jitsiRoom = data.room.jitsi_room;
+  document.getElementById('roomBadge').textContent = data.room.title;
   document.getElementById('lobbyPanel').style.display = 'none';
-  const panel = document.getElementById('meetingPanel');
-  panel.classList.add('shown');
+  document.getElementById('meetingPanel').classList.add('shown');
 
-  // Build Jitsi URL — uses meet.jit.si (free, HTTPS, no install)
-  const jitsiUrl = 'https://meet.jit.si/' + encodeURIComponent(currentRoom)
+  const jitsiUrl = 'https://meet.jit.si/' + encodeURIComponent(jitsiRoom)
     + '#userInfo.displayName="' + encodeURIComponent(MY_NAME_MEET) + '"'
     + '&config.prejoinPageEnabled=false'
     + '&config.startWithAudioMuted=false'
     + '&config.startWithVideoMuted=false'
     + '&interfaceConfig.SHOW_JITSI_WATERMARK=false'
     + '&interfaceConfig.SHOW_BRAND_WATERMARK=false';
-
   document.getElementById('jitsiFrame').src = jitsiUrl;
-
-  // Update URL so others can share the link
-  const newUrl = window.location.pathname + '?room=' + encodeURIComponent(currentRoom);
-  history.replaceState(null, '', newUrl);
-}}
-
-function copyRoom() {{
-  if (!currentRoom) return;
-  const shareUrl = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(currentRoom);
-  navigator.clipboard.writeText(shareUrl)
-    .then(() => {{ document.getElementById('roomBadge').textContent = 'Copied! ✓'; setTimeout(() => {{ document.getElementById('roomBadge').textContent = 'Room: ' + currentRoom; }}, 1800); }})
-    .catch(() => {{ document.getElementById('roomBadge').textContent = currentRoom; }});
 }}
 
 function leaveMeet() {{
   document.getElementById('jitsiFrame').src = '';
   document.getElementById('meetingPanel').classList.remove('shown');
   document.getElementById('lobbyPanel').style.display = 'flex';
-  history.replaceState(null, '', window.location.pathname);
-  currentRoom = null;
+  document.getElementById('codeInput').value = '';
 }}
 </script>
 """
@@ -2984,12 +3262,12 @@ function leaveMeet() {{
 @app.route("/student/meet")
 @student_required
 def student_meet():
-    return _meet_page(student_sidebar, "/student/meet", "/student/meet")
+    return _student_meet_page(student_sidebar, "/student/meet", "/student/meet")
 
 @app.route("/admin/meet")
 @admin_required
 def admin_meet():
-    return _meet_page(admin_sidebar, "/admin/meet", "/admin/meet")
+    return _admin_meet_page(admin_sidebar, "/admin/meet", "/admin/meet")
 
 
 
