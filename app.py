@@ -1576,13 +1576,23 @@ def student_signup():
                 pending.append(record)
                 save_pending(pending)
 
-                email_token = create_email_token(pid)
-                otp         = create_phone_otp(pid)
-                send_verification_email(email, full_name, pid, email_token)
-                send_otp_sms(phone, otp, full_name)
+                # Try to send verification email; if not configured skip straight to pending
+                cfg = load_email_config()
+                email_configured = bool(cfg.get("mail_user") and cfg.get("mail_pass"))
 
-                pending_id = pid
-                success = "submitted"
+                if email_configured:
+                    email_token = create_email_token(pid)
+                    otp         = create_phone_otp(pid)
+                    send_verification_email(email, full_name, pid, email_token)
+                    send_otp_sms(phone, otp, full_name)
+                    pending_id = pid
+                    success = "submitted"
+                else:
+                    # Mark both verifications done automatically — admin still must approve
+                    pending[-1]["email_verified"] = True
+                    pending[-1]["phone_verified"] = True
+                    save_pending(pending)
+                    success = "pending_no_email"
 
     PROGRAMMES = [
         "Diploma in Information Technology",
@@ -1594,6 +1604,33 @@ def student_signup():
         "Learnerships: Generic Management NQF 5",
         "Other / Not Listed",
     ]
+
+    if success == "pending_no_email":
+        page = render_template_string(f"""
+<!DOCTYPE html>
+<html data-theme="light" lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Registration Submitted — JH Portal</title>
+<style>{BASE_STYLES}
+body{{background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}}
+.done-card{{max-width:480px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 36px;text-align:center;box-shadow:0 8px 40px rgba(45,106,79,.12)}}
+</style>
+</head>
+<body>
+<div class="done-card">
+  <div style="font-size:64px;margin-bottom:16px">🎉</div>
+  <h1 style="font-family:'Syne',sans-serif;font-size:24px;margin-bottom:10px">Registration Submitted!</h1>
+  <p style="color:var(--text-2);font-size:14px;line-height:1.7;margin-bottom:28px">
+    Your application has been received and is awaiting admin approval.<br>
+    You will be contacted once your account has been activated.
+  </p>
+  <a href="/" style="display:inline-block;background:var(--jh-grad);color:#fff;text-decoration:none;padding:13px 32px;border-radius:10px;font-weight:700;font-family:'Syne',sans-serif;font-size:15px">← Back to Sign In</a>
+</div>
+</body>
+</html>
+""")
+        return page
 
     if success == "submitted":
         # Show verification UI
@@ -2070,9 +2107,11 @@ def api_approve_learner():
     save_pending(pending)
 
     # Notify learner
-    send_approval_email(rec["email"], rec["full_name"], username, password)
+    email_result = send_approval_email(rec["email"], rec["full_name"], username, password)
+    email_sent = email_result is True
+    email_warning = None if email_sent else "Learner approved but approval email could not be sent — check Email Settings."
 
-    return jsonify({"ok": True, "student": new_student})
+    return jsonify({"ok": True, "student": new_student, "email_sent": email_sent, "email_warning": email_warning})
 
 @app.route("/api/admin/reject-learner", methods=["POST"])
 @admin_required
@@ -2376,8 +2415,11 @@ async function approveLearner(id) {{
     const row = document.getElementById(`pr-${{id}}`);
     if (row) {{
       row.style.background = 'rgba(34,197,94,.08)';
-      row.cells[5].innerHTML = '<span style="color:#16a34a;font-size:13px;font-weight:600">✅ Approved</span>';
-      setTimeout(() => {{ row.remove(); checkEmptyPending(); }}, 1800);
+      const statusMsg = json.email_sent
+        ? '✅ Approved — email sent'
+        : '✅ Approved <span style="color:#F5C518;font-size:11px">(email not sent — check Settings)</span>';
+      row.cells[5].innerHTML = `<span style="color:#16a34a;font-size:13px;font-weight:600">${{statusMsg}}</span>`;
+      setTimeout(() => {{ row.remove(); checkEmptyPending(); }}, 3000);
     }}
   }} else {{
     alert(json.error || 'Approval failed.');
