@@ -2845,64 +2845,35 @@ def api_messages_unread():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# VIDEO MEET (WebRTC via PeerJS signalling)
+# VIDEO MEET (Jitsi Meet — camera & mic work on any HTTPS connection)
 # ══════════════════════════════════════════════════════════════════════════════
 
 MEET_PAGE_CSS = """
 .meet-shell{min-height:100vh;background:#0a0a0a;display:flex;flex-direction:column;font-family:'DM Sans',sans-serif;color:#fff;margin:-28px -28px -48px}
-.meet-topbar{height:56px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 20px;gap:14px}
+.meet-topbar{height:56px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0}
 .meet-topbar-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#fff;flex:1}
-.meet-room-id{font-size:12px;color:#888;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:4px 10px;cursor:pointer;transition:background .2s}
-.meet-room-id:hover{background:#222;color:#00A89D}
 
-.meet-main{flex:1;display:flex;overflow:hidden}
-.meet-videos{flex:1;display:grid;gap:8px;padding:16px;align-content:start}
-.meet-videos.one{grid-template-columns:1fr}
-.meet-videos.two{grid-template-columns:1fr 1fr}
-.meet-videos.many{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.meet-lobby{flex:1;display:flex;align-items:center;justify-content:center;padding:40px}
+.meet-lobby-card{background:#111;border:1px solid #222;border-radius:16px;padding:36px;max-width:460px;width:100%;text-align:center}
+.meet-room-input{width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:11px 14px;color:#fff;font-size:13.5px;outline:none;font-family:'DM Sans',sans-serif;text-align:center;margin-bottom:12px;box-sizing:border-box}
+.meet-room-input:focus{border-color:#00A89D}
+.meet-join-btn{width:100%;background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .2s;margin-bottom:8px}
+.meet-join-btn:hover{opacity:.88}
+.meet-hint{font-size:11px;color:#555;margin-top:8px;line-height:1.5}
 
-.meet-video-tile{position:relative;background:#1a1a1a;border-radius:12px;overflow:hidden;aspect-ratio:16/9;border:2px solid #222}
-.meet-video-tile.speaking{border-color:#00A89D}
-.meet-video-tile video{width:100%;height:100%;object-fit:cover}
-.meet-video-tile .tile-label{position:absolute;bottom:10px;left:12px;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.meet-video-tile .tile-muted{position:absolute;top:10px;right:10px;background:rgba(220,50,50,.8);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px}
-.meet-avatar-tile{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a2e1a,#0a1a0a)}
-.meet-avatar-circle{width:72px;height:72px;border-radius:50%;background:var(--jh-grad,linear-gradient(135deg,#8DC63F,#00A89D));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:#fff}
-
-.meet-sidebar{width:280px;border-left:1px solid #222;background:#111;display:flex;flex-direction:column;overflow:hidden}
-.meet-sidebar-tabs{display:flex;border-bottom:1px solid #222}
-.meet-tab{flex:1;padding:12px;text-align:center;font-size:12.5px;font-weight:600;cursor:pointer;color:#666;transition:all .2s;border-bottom:2px solid transparent}
-.meet-tab.active{color:#00A89D;border-bottom-color:#00A89D;background:rgba(0,168,157,.05)}
-.meet-participants-list{flex:1;overflow-y:auto;padding:12px}
-.meet-participant{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;transition:background .2s}
-.meet-participant:hover{background:#1a1a1a}
-.meet-p-avatar{width:34px;height:34px;border-radius:50%;background:var(--jh-grad,linear-gradient(135deg,#8DC63F,#00A89D));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
-.meet-p-name{flex:1;font-size:13px;font-weight:500}
-.meet-chat-area{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.meet-chat-msg{padding:8px 10px;background:#1a1a1a;border-radius:8px;border-left:3px solid #00A89D}
-.meet-chat-msg .from{font-size:10.5px;font-weight:700;color:#00A89D;margin-bottom:3px}
-.meet-chat-msg .text{font-size:12.5px;color:#ccc;line-height:1.4}
-.meet-chat-input-area{padding:10px;border-top:1px solid #222;display:flex;gap:8px}
-.meet-chat-input{flex:1;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;outline:none;font-family:'DM Sans',sans-serif}
-.meet-chat-input:focus{border-color:#00A89D}
-.meet-chat-send{background:#00A89D;border:none;border-radius:8px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;transition:opacity .2s}
-.meet-chat-send:hover{opacity:.85}
-
-.meet-controls{height:80px;background:#111;border-top:1px solid #222;display:flex;align-items:center;justify-content:center;gap:14px}
-.ctrl-btn{width:50px;height:50px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;position:relative}
-.ctrl-btn.active{background:#2a2a2a;color:#fff}
-.ctrl-btn.active:hover{background:#333}
-.ctrl-btn.off{background:#dc3535;color:#fff}
-.ctrl-btn.off:hover{background:#c42b2b}
-.ctrl-btn.leave{background:#dc3535;color:#fff;width:60px;border-radius:14px;font-size:14px;font-weight:600}
-.ctrl-btn.leave:hover{background:#c42b2b}
-.ctrl-label{position:absolute;bottom:-18px;font-size:10px;color:#666;white-space:nowrap;left:50%;transform:translateX(-50%)}
-
-.meet-status-bar{background:rgba(0,168,157,.12);border:1px solid rgba(0,168,157,.25);border-radius:8px;padding:8px 14px;font-size:12px;color:#00A89D;display:flex;align-items:center;gap:6px;margin:0 16px 12px}
+.meet-active{flex:1;display:none;flex-direction:column}
+.meet-active.shown{display:flex}
+.meet-active-bar{height:48px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.meet-room-badge{font-size:12px;color:#888;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:3px 10px;cursor:pointer;transition:background .2s}
+.meet-room-badge:hover{background:#222;color:#00A89D}
+.meet-frame-wrap{flex:1;position:relative;overflow:hidden}
+.meet-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
 """
 
 def _meet_page(sidebar_fn, sidebar_path, base_route):
     caller = get_caller_identity()
+    user_name = caller["name"].replace("'", "\'") if caller else "Guest"
+    back_url  = base_route.replace("/meet", "/messages")
     content = f"""
 <style>
 :root{{--jh-grad:linear-gradient(135deg,#8DC63F 0%,#00A89D 60%,#2D6A4F 100%)}}
@@ -2913,555 +2884,97 @@ def _meet_page(sidebar_fn, sidebar_path, base_route):
   <div class="meet-topbar">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00A89D" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
     <span class="meet-topbar-title">JH Meet</span>
-    <span class="meet-room-id" id="roomIdDisplay" onclick="copyRoomId()" title="Click to copy room ID">
-      Room: –
-    </span>
-    <span id="connStatus" style="font-size:11px;color:#666">Not connected</span>
+    <a href="{back_url}" style="font-size:12px;color:#666;text-decoration:none;padding:4px 10px;background:#1a1a1a;border:1px solid #333;border-radius:6px;transition:color .2s" onmouseover="this.style.color='#00A89D'" onmouseout="this.style.color='#666'">← Back</a>
   </div>
 
-  <!-- Lobby (pre-join) -->
-  <div id="lobbyPanel" style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
-    <div style="background:#111;border:1px solid #222;border-radius:16px;padding:36px;max-width:420px;width:100%;text-align:center">
+  <!-- Lobby -->
+  <div class="meet-lobby" id="lobbyPanel">
+    <div class="meet-lobby-card">
       <div style="font-size:48px;margin-bottom:16px">📹</div>
       <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px">JH Meet</h2>
-      <p style="color:#888;font-size:13.5px;margin-bottom:24px">Start or join a secure video meeting</p>
+      <p style="color:#888;font-size:13.5px;margin-bottom:28px">Secure video meetings — camera &amp; mic work instantly</p>
 
-      <div id="previewContainer" style="background:#0a0a0a;border-radius:10px;overflow:hidden;aspect-ratio:16/9;margin-bottom:20px;position:relative">
-        <video id="previewVideo" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover"></video>
-        <div id="previewAvatar" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#1a1a1a">
-          <div class="meet-avatar-circle" style="width:60px;height:60px;font-size:22px">{("".join(w[0].upper() for w in caller["name"].split()[:2]) if caller else "?")}</div>
-        </div>
-      </div>
+      <input id="roomIdInput" class="meet-room-input" type="text"
+        placeholder="Room name (leave blank to create new)">
 
-      <div id="permBanner" style="display:none;background:rgba(220,53,53,.1);border:1px solid rgba(220,53,53,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#ff8080;text-align:left;line-height:1.5"></div>
-
-      <div style="display:flex;gap:12px;margin-bottom:20px;justify-content:center">
-        <div style="text-align:center">
-          <button class="ctrl-btn active" id="lobbyMicBtn" onclick="toggleLobbyMic()" title="Toggle microphone">🎤</button>
-          <div style="font-size:10px;color:#666;margin-top:4px">Mic</div>
-        </div>
-        <div style="text-align:center">
-          <button class="ctrl-btn active" id="lobbyCamBtn" onclick="toggleLobbyCam()" title="Toggle camera">📷</button>
-          <div style="font-size:10px;color:#666;margin-top:4px">Camera</div>
-        </div>
-        <div style="text-align:center">
-          <button class="ctrl-btn active" id="reqPermBtn" onclick="requestPermissions()" title="Re-request camera & mic access" style="font-size:13px">🔄</button>
-          <div style="font-size:10px;color:#666;margin-top:4px">Allow</div>
-        </div>
-      </div>
-
-      <div style="margin-bottom:16px">
-        <input id="roomIdInput" type="text" placeholder="Enter Room ID to join, or leave blank to create new"
-          style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:10px 14px;color:#fff;font-size:13px;outline:none;font-family:'DM Sans',sans-serif;text-align:center">
-      </div>
-      <button onclick="joinMeet()" style="width:100%;background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity .2s" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
-        Join / Start Meeting
+      <button class="meet-join-btn" onclick="joinMeet()">
+        🎥 &nbsp;Join / Start Meeting
       </button>
+      <div class="meet-hint">
+        Share the room name with others so they can join.<br>
+        Camera &amp; microphone are handled by the meeting itself.
+      </div>
     </div>
   </div>
 
   <!-- Active meeting -->
-  <div id="meetingPanel" style="display:none;flex:1;overflow:hidden">
-    <div style="display:flex;flex:1;overflow:hidden;height:calc(100vh - 56px - 80px)">
-      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-        <div id="statusBar" class="meet-status-bar" style="margin-top:12px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-          <span id="statusText">Setting up…</span>
-        </div>
-        <div class="meet-videos one" id="videoGrid"></div>
-      </div>
-      <div class="meet-sidebar">
-        <div class="meet-sidebar-tabs">
-          <div class="meet-tab active" onclick="switchTab('participants')" id="tab-participants">👥 People</div>
-          <div class="meet-tab" onclick="switchTab('chat')" id="tab-chat">💬 Chat</div>
-        </div>
-        <div id="panel-participants" class="meet-participants-list"></div>
-        <div id="panel-chat" style="display:none;flex:1;flex-direction:column;overflow:hidden">
-          <div class="meet-chat-area" id="meetChatArea"></div>
-          <div class="meet-chat-input-area">
-            <input class="meet-chat-input" id="meetChatInput" placeholder="Send a message…"
-              onkeydown="if(event.key==='Enter')sendMeetChat()">
-            <button class="meet-chat-send" onclick="sendMeetChat()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
+  <div class="meet-active" id="meetingPanel">
+    <div class="meet-active-bar">
+      <span id="roomBadge" class="meet-room-badge" onclick="copyRoom()" title="Click to copy">Room: –</span>
+      <span style="flex:1"></span>
+      <button onclick="leaveMeet()" style="background:#dc3535;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Leave</button>
     </div>
-    <div class="meet-controls">
-      <div style="position:relative">
-        <button class="ctrl-btn active" id="micBtn" onclick="toggleMic()">🎤</button>
-        <span class="ctrl-label">Mute</span>
-      </div>
-      <div style="position:relative">
-        <button class="ctrl-btn active" id="camBtn" onclick="toggleCam()">📷</button>
-        <span class="ctrl-label">Video</span>
-      </div>
-      <div style="position:relative">
-        <button class="ctrl-btn active" id="screenBtn" onclick="toggleScreen()">🖥️</button>
-        <span class="ctrl-label">Share</span>
-      </div>
-      <div style="position:relative">
-        <button class="ctrl-btn leave" onclick="leaveMeet()">Leave</button>
-      </div>
+    <div class="meet-frame-wrap">
+      <iframe id="jitsiFrame" allow="camera; microphone; display-capture; fullscreen; autoplay" allowfullscreen></iframe>
     </div>
   </div>
+
 </div>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const MY_NAME_MEET = '{caller["name"] if caller else "Guest"}';
-const MY_ID_MEET = '{caller["id"] if caller else "guest"}';
-const MY_INITIALS = '{("".join(w[0].upper() for w in (caller["name"] if caller else "Guest").split()[:2]))}';
-let localStream = null;
-let peer = null;
-let myPeerId = null;
-let roomId = null;
-let calls = {{}};
-let participants = {{}};
-let micOn = true, camOn = true;
-let lobbyMicOn = true, lobbyCamOn = true;
+const MY_NAME_MEET = '{user_name}';
+const BACK_URL = '{back_url}';
+let currentRoom = null;
 
-// Check URL params
+// Pre-fill room from URL param
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
-if(roomParam) document.getElementById('roomIdInput').value = roomParam;
+if (roomParam) document.getElementById('roomIdInput').value = roomParam;
 
-async function initPreview() {{
-  const vid = document.getElementById('previewVideo');
-  const av  = document.getElementById('previewAvatar');
-  const permBanner = document.getElementById('permBanner');
-
-  // mediaDevices only available on HTTPS or localhost
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
-    vid.style.display = 'none';
-    av.style.display  = 'flex';
-    if (permBanner) {{
-      permBanner.style.display = 'flex';
-      permBanner.innerHTML = '⚠️ Camera &amp; microphone require a secure connection (HTTPS or localhost). You can still join — other participants will see your name instead of video.';
-    }}
-    return;
-  }}
-
-  try {{
-    localStream = await navigator.mediaDevices.getUserMedia({{video:true, audio:true}});
-    vid.srcObject = localStream;
-    vid.style.display = '';
-    av.style.display  = 'none';
-    if (permBanner) permBanner.style.display = 'none';
-  }} catch(err) {{
-    vid.style.display = 'none';
-    av.style.display  = 'flex';
-    if (permBanner) {{
-      permBanner.style.display = 'flex';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {{
-        permBanner.innerHTML = '🔒 Camera &amp; microphone access was blocked. Click the 🔒 / 📷 icon in your browser address bar and allow access, then refresh.';
-      }} else if (err.name === 'NotFoundError') {{
-        permBanner.innerHTML = '📷 No camera or microphone detected. You can still join — others will see your name.';
-      }} else {{
-        permBanner.innerHTML = '⚠️ Could not start camera (' + err.name + '). You can still join without video.';
-      }}
-    }}
-    // Try audio-only as fallback
-    try {{
-      localStream = await navigator.mediaDevices.getUserMedia({{audio:true}});
-    }} catch(e2) {{
-      localStream = null;
-    }}
-  }}
-}}
-initPreview();
-
-function toggleLobbyMic() {{
-  lobbyMicOn = !lobbyMicOn;
-  if(localStream) localStream.getAudioTracks().forEach(t => t.enabled = lobbyMicOn);
-  document.getElementById('lobbyMicBtn').className = 'ctrl-btn ' + (lobbyMicOn ? 'active' : 'off');
-  document.getElementById('lobbyMicBtn').textContent = lobbyMicOn ? '🎤' : '🔇';
+function sanitizeRoom(name) {{
+  // Jitsi room names: letters, numbers, hyphens only, no spaces
+  return name.trim().replace(/[^a-zA-Z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 64) || 'jh-meet-' + Date.now();
 }}
 
-function toggleLobbyCam() {{
-  lobbyCamOn = !lobbyCamOn;
-  if(localStream) localStream.getVideoTracks().forEach(t => t.enabled = lobbyCamOn);
-  document.getElementById('lobbyCamBtn').className = 'ctrl-btn ' + (lobbyCamOn ? 'active' : 'off');
-  document.getElementById('lobbyCamBtn').textContent = lobbyCamOn ? '📷' : '🚫';
-}}
+function joinMeet() {{
+  const raw = document.getElementById('roomIdInput').value.trim();
+  currentRoom = sanitizeRoom(raw || ('jh-meet-' + Date.now()));
 
-async function requestPermissions() {{
-  const permBanner = document.getElementById('permBanner');
-  if (permBanner) {{ permBanner.style.display = 'none'; permBanner.textContent = ''; }}
-  try {{
-    localStream = await navigator.mediaDevices.getUserMedia({{video:true, audio:true}});
-    const vid = document.getElementById('previewVideo');
-    vid.srcObject = localStream;
-    vid.style.display = '';
-    document.getElementById('previewAvatar').style.display = 'none';
-    document.getElementById('lobbyMicBtn').className = 'ctrl-btn active';
-    document.getElementById('lobbyCamBtn').className = 'ctrl-btn active';
-  }} catch(err) {{
-    if (permBanner) {{
-      permBanner.style.display = 'flex';
-      permBanner.innerHTML = '🔒 Still blocked. Please click the 🔒 icon in the browser address bar, set Camera &amp; Microphone to Allow, then click 🔄 again.';
-    }}
-  }}
-}}
-
-async function joinMeet() {{
-  // Re-attempt media acquisition on join if we don't have a stream yet
-  if (!localStream && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {{
-    try {{
-      localStream = await navigator.mediaDevices.getUserMedia({{video:true, audio:true}});
-    }} catch(e1) {{
-      try {{
-        localStream = await navigator.mediaDevices.getUserMedia({{audio:true}});
-      }} catch(e2) {{
-        localStream = null; // join without media
-      }}
-    }}
-  }}
-
-  micOn = lobbyMicOn; camOn = lobbyCamOn;
-
-  roomId = document.getElementById('roomIdInput').value.trim() || ('room-' + Date.now());
-  document.getElementById('roomIdDisplay').textContent = 'Room: ' + roomId;
+  document.getElementById('roomBadge').textContent = 'Room: ' + currentRoom;
   document.getElementById('lobbyPanel').style.display = 'none';
-  const mp = document.getElementById('meetingPanel');
-  mp.style.display = 'flex';
-  mp.style.flexDirection = 'column';
-  mp.style.flex = '1';
-  mp.style.overflow = 'hidden';
+  const panel = document.getElementById('meetingPanel');
+  panel.classList.add('shown');
 
-  addLocalTile();
-  initPeer();
+  // Build Jitsi URL — uses meet.jit.si (free, HTTPS, no install)
+  const jitsiUrl = 'https://meet.jit.si/' + encodeURIComponent(currentRoom)
+    + '#userInfo.displayName="' + encodeURIComponent(MY_NAME_MEET) + '"'
+    + '&config.prejoinPageEnabled=false'
+    + '&config.startWithAudioMuted=false'
+    + '&config.startWithVideoMuted=false'
+    + '&interfaceConfig.SHOW_JITSI_WATERMARK=false'
+    + '&interfaceConfig.SHOW_BRAND_WATERMARK=false';
+
+  document.getElementById('jitsiFrame').src = jitsiUrl;
+
+  // Update URL so others can share the link
+  const newUrl = window.location.pathname + '?room=' + encodeURIComponent(currentRoom);
+  history.replaceState(null, '', newUrl);
 }}
 
-function initPeer() {{
-  peer = new Peer({{
-    config: {{iceServers:[
-      {{urls:'stun:stun.l.google.com:19302'}},
-      {{urls:'stun:stun1.l.google.com:19302'}},
-      {{urls:'stun:stun2.l.google.com:19302'}}
-    ]}}
-  }});
-
-  peer.on('open', id => {{
-    myPeerId = id;
-    // Update local tile participant key now that peer ID is known
-    delete participants[null];
-    participants[myPeerId] = MY_NAME_MEET + ' (You)';
-    renderParticipants();
-    setStatus('Connected — Share room ID to invite others', '#00A89D');
-    document.getElementById('connStatus').textContent = '🟢 Ready';
-    registerInRoom(id);
-    pollRoomPeers();
-  }});
-
-  peer.on('call', incomingCall => {{
-    incomingCall.answer(localStream || new MediaStream());
-    handleCall(incomingCall);
-  }});
-
-  peer.on('connection', conn => {{
-    conn.on('data', d => handleDataMsg(d, conn.peer));
-  }});
-
-  peer.on('error', e => {{
-    setStatus('Connection issue: ' + e.type, '#dc3535');
-    console.error('PeerJS error', e);
-  }});
-}}
-
-const roomPeers = {{}};
-
-async function registerInRoom(peerId) {{
-  await fetch('/api/meet/register', {{
-    method: 'POST',
-    headers: {{'Content-Type':'application/json'}},
-    body: JSON.stringify({{room: roomId, peer_id: peerId, name: MY_NAME_MEET}})
-  }});
-}}
-
-let pollInterval = null;
-function pollRoomPeers() {{
-  pollInterval = setInterval(async () => {{
-    const res = await fetch('/api/meet/peers?room='+encodeURIComponent(roomId));
-    const data = await res.json();
-    if(!data.ok) return;
-    data.peers.forEach(p => {{
-      if(p.peer_id !== myPeerId && !calls[p.peer_id]) {{
-        callPeer(p.peer_id, p.name);
-      }}
-    }});
-  }}, 4000);
-}}
-
-function callPeer(peerId, peerName) {{
-  if(calls[peerId]) return;
-  calls[peerId] = true; // mark immediately to block duplicate calls from poll
-  const call = peer.call(peerId, localStream || new MediaStream(), {{metadata:{{name:MY_NAME_MEET}}}});
-  if(!call) {{ delete calls[peerId]; return; }}
-  handleCall(call, peerName);
-
-  const conn = peer.connect(peerId);
-  conn.on('open', () => {{
-    conn.send({{type:'join', name:MY_NAME_MEET}});
-  }});
-  conn.on('data', d => handleDataMsg(d, peerId));
-}}
-
-function handleCall(call, remoteName) {{
-  calls[call.peer] = call; // replace any placeholder
-  call.on('stream', remoteStream => {{
-    const name = remoteName || call.metadata?.name || 'Participant';
-    addRemoteTile(call.peer, name, remoteStream);
-    addParticipant(call.peer, name);
-    updateGrid();
-  }});
-  call.on('close', () => {{
-    removeTile(call.peer);
-    removeParticipant(call.peer);
-    delete calls[call.peer];
-    updateGrid();
-  }});
-  call.on('error', () => {{
-    removeTile(call.peer);
-    delete calls[call.peer];
-    updateGrid();
-  }});
-  // If remote has no video tracks, stream event may not fire — show avatar tile after timeout
-  setTimeout(() => {{
-    if(!document.getElementById('tile-'+call.peer) && calls[call.peer] === call) {{
-      const name = remoteName || call.metadata?.name || 'Participant';
-      addAvatarTile(call.peer, name);
-      addParticipant(call.peer, name);
-      updateGrid();
-    }}
-  }}, 5000);
-}}
-
-function handleDataMsg(data, fromPeer) {{
-  if(data.type === 'join') {{
-    addParticipant(fromPeer, data.name);
-  }} else if(data.type === 'chat') {{
-    addMeetChatMsg(data.name, data.text);
-  }}
-}}
-
-// ── Tiles ──────────────────────────────────────────────────────────────────
-function addLocalTile() {{
-  participants[myPeerId] = MY_NAME_MEET;
-  const tile = document.createElement('div');
-  tile.className = 'meet-video-tile';
-  tile.id = 'tile-local';
-  if(localStream && localStream.getVideoTracks().length > 0 && camOn) {{
-    const v = document.createElement('video');
-    v.autoplay = true; v.muted = true; v.playsInline = true;
-    v.srcObject = localStream; v.style.cssText='width:100%;height:100%;object-fit:cover';
-    tile.appendChild(v);
-  }} else {{
-    const av = document.createElement('div');
-    av.className = 'meet-avatar-tile';
-    av.innerHTML = '<div class="meet-avatar-circle">'+MY_INITIALS+'</div>';
-    tile.appendChild(av);
-  }}
-  const lbl = document.createElement('div');
-  lbl.className = 'tile-label';
-  lbl.textContent = MY_NAME_MEET + ' (You)';
-  tile.appendChild(lbl);
-  document.getElementById('videoGrid').appendChild(tile);
-  addParticipant(myPeerId, MY_NAME_MEET + ' (You)');
-  updateGrid();
-}}
-
-function addRemoteTile(peerId, name, stream) {{
-  removeTile(peerId);
-  const tile = document.createElement('div');
-  tile.className = 'meet-video-tile';
-  tile.id = 'tile-'+peerId;
-  const v = document.createElement('video');
-  v.autoplay = true; v.playsInline = true;
-  v.srcObject = stream; v.style.cssText='width:100%;height:100%;object-fit:cover';
-  tile.appendChild(v);
-  const lbl = document.createElement('div');
-  lbl.className = 'tile-label';
-  lbl.textContent = name;
-  tile.appendChild(lbl);
-  document.getElementById('videoGrid').appendChild(tile);
-}}
-
-function addAvatarTile(peerId, name) {{
-  removeTile(peerId);
-  const tile = document.createElement('div');
-  tile.className = 'meet-video-tile';
-  tile.id = 'tile-'+peerId;
-  const av = document.createElement('div');
-  av.className = 'meet-avatar-tile';
-  const initials = name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
-  av.innerHTML = '<div class="meet-avatar-circle">'+initials+'</div>';
-  tile.appendChild(av);
-  const lbl = document.createElement('div');
-  lbl.className = 'tile-label';
-  lbl.textContent = name;
-  tile.appendChild(lbl);
-  document.getElementById('videoGrid').appendChild(tile);
-}}
-
-function removeTile(peerId) {{
-  const t = document.getElementById('tile-'+peerId);
-  if(t) t.remove();
-}}
-
-function updateGrid() {{
-  const grid = document.getElementById('videoGrid');
-  const n = grid.children.length;
-  grid.className = 'meet-videos ' + (n===1?'one':n===2?'two':'many');
-}}
-
-// ── Controls ──────────────────────────────────────────────────────────────
-function toggleMic() {{
-  micOn = !micOn;
-  if(localStream) localStream.getAudioTracks().forEach(t => t.enabled = micOn);
-  document.getElementById('micBtn').className = 'ctrl-btn '+(micOn?'active':'off');
-  document.getElementById('micBtn').textContent = micOn?'🎤':'🔇';
-}}
-
-function toggleCam() {{
-  camOn = !camOn;
-  if(localStream) localStream.getVideoTracks().forEach(t => t.enabled = camOn);
-  document.getElementById('camBtn').className = 'ctrl-btn '+(camOn?'active':'off');
-  document.getElementById('camBtn').textContent = camOn?'📷':'🚫';
-
-  const localTile = document.getElementById('tile-local');
-  if(!localTile) return;
-
-  if(!camOn) {{
-    // Replace video with avatar
-    const v = localTile.querySelector('video');
-    if(v) v.remove();
-    if(!localTile.querySelector('.meet-avatar-tile')) {{
-      const av = document.createElement('div');
-      av.className = 'meet-avatar-tile';
-      av.innerHTML = '<div class="meet-avatar-circle">'+MY_INITIALS+'</div>';
-      localTile.insertBefore(av, localTile.firstChild);
-    }}
-  }} else if(localStream && localStream.getVideoTracks().length > 0) {{
-    // Replace avatar with live video
-    const av = localTile.querySelector('.meet-avatar-tile');
-    if(av) av.remove();
-    if(!localTile.querySelector('video')) {{
-      const v = document.createElement('video');
-      v.autoplay = true; v.muted = true; v.playsInline = true;
-      v.srcObject = localStream;
-      v.style.cssText = 'width:100%;height:100%;object-fit:cover';
-      localTile.insertBefore(v, localTile.firstChild);
-    }}
-  }}
-}}
-
-let screenStream = null;
-async function toggleScreen() {{
-  if(screenStream) {{
-    screenStream.getTracks().forEach(t => t.stop());
-    screenStream = null;
-    document.getElementById('screenBtn').className = 'ctrl-btn active';
-    const videoTrack = localStream?.getVideoTracks()[0];
-    if(videoTrack) Object.values(calls).forEach(c => {{
-      const sender = c.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
-      if(sender) sender.replaceTrack(videoTrack);
-    }});
-    setStatus('Screen sharing stopped', '#888');
-    return;
-  }}
-  try {{
-    screenStream = await navigator.mediaDevices.getDisplayMedia({{video:true}});
-    const screenTrack = screenStream.getVideoTracks()[0];
-    Object.values(calls).forEach(c => {{
-      const sender = c.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
-      if(sender) sender.replaceTrack(screenTrack);
-    }});
-    screenTrack.onended = () => {{ screenStream=null; document.getElementById('screenBtn').className='ctrl-btn active'; setStatus('Screen sharing ended','#888'); }};
-    document.getElementById('screenBtn').className = 'ctrl-btn off';
-    setStatus('You are sharing your screen', '#00A89D');
-  }} catch(e) {{ setStatus('Screen share cancelled','#888'); }}
+function copyRoom() {{
+  if (!currentRoom) return;
+  const shareUrl = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(currentRoom);
+  navigator.clipboard.writeText(shareUrl)
+    .then(() => {{ document.getElementById('roomBadge').textContent = 'Copied! ✓'; setTimeout(() => {{ document.getElementById('roomBadge').textContent = 'Room: ' + currentRoom; }}, 1800); }})
+    .catch(() => {{ document.getElementById('roomBadge').textContent = currentRoom; }});
 }}
 
 function leaveMeet() {{
-  clearInterval(pollInterval);
-  Object.values(calls).forEach(c => c.close());
-  if(localStream) localStream.getTracks().forEach(t => t.stop());
-  if(peer) peer.destroy();
-  fetch('/api/meet/leave', {{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{room:roomId,peer_id:myPeerId}})}});
-  window.location.href = '{base_route.replace("/meet", "/messages")}';
-}}
-
-// ── Participants panel ─────────────────────────────────────────────────────
-function addParticipant(peerId, name) {{
-  participants[peerId] = name;
-  renderParticipants();
-}}
-function removeParticipant(peerId) {{
-  delete participants[peerId];
-  renderParticipants();
-}}
-function renderParticipants() {{
-  const panel = document.getElementById('panel-participants');
-  panel.innerHTML = '';
-  Object.entries(participants).forEach(([pid, name]) => {{
-    const initials = name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
-    panel.innerHTML += `<div class="meet-participant"><div class="meet-p-avatar">${{initials}}</div><div class="meet-p-name">${{name}}</div></div>`;
-  }});
-}}
-
-// ── In-meet chat ──────────────────────────────────────────────────────────
-function sendMeetChat() {{
-  const inp = document.getElementById('meetChatInput');
-  const text = inp.value.trim();
-  if(!text) return;
-  inp.value = '';
-  addMeetChatMsg(MY_NAME_MEET, text);
-  Object.values(calls).forEach(c => {{
-    const conn = peer.connect(c.peer);
-    conn.on('open', () => conn.send({{type:'chat', name:MY_NAME_MEET, text}}));
-  }});
-}}
-
-function addMeetChatMsg(name, text) {{
-  const area = document.getElementById('meetChatArea');
-  const div = document.createElement('div');
-  div.className = 'meet-chat-msg';
-  div.innerHTML = '<div class="from">'+name+'</div><div class="text">'+text.replace(/</g,'&lt;')+'</div>';
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}}
-
-// ── Tabs ──────────────────────────────────────────────────────────────────
-function switchTab(tab) {{
-  ['participants','chat'].forEach(t => {{
-    document.getElementById('tab-'+t).className = 'meet-tab'+(t===tab?' active':'');
-    const p = document.getElementById('panel-'+t);
-    if(t===tab) {{ p.style.display=t==='chat'?'flex':'block'; if(t==='chat') p.style.flexDirection='column'; }}
-    else p.style.display='none';
-  }});
-}}
-
-function setStatus(msg, color) {{
-  document.getElementById('statusText').textContent = msg;
-  document.getElementById('statusBar').style.borderColor = color+'44';
-  document.getElementById('statusBar').style.background = color+'18';
-  document.getElementById('statusBar').style.color = color;
-}}
-
-function copyRoomId() {{
-  if(!roomId) return;
-  navigator.clipboard.writeText(roomId).then(()=>{{ showToast('Room ID copied!'); }}).catch(()=>{{}});
-}}
-
-function showToast(msg) {{
-  const t = document.getElementById('globalToast') || document.body;
-  if(document.getElementById('globalToast')) {{
-    document.getElementById('globalToast').textContent = msg;
-    document.getElementById('globalToast').style.opacity = '1';
-    setTimeout(()=>{{document.getElementById('globalToast').style.opacity='0';}}, 2000);
-  }}
+  document.getElementById('jitsiFrame').src = '';
+  document.getElementById('meetingPanel').classList.remove('shown');
+  document.getElementById('lobbyPanel').style.display = 'flex';
+  history.replaceState(null, '', window.location.pathname);
+  currentRoom = null;
 }}
 </script>
 """
@@ -3478,58 +2991,6 @@ def student_meet():
 def admin_meet():
     return _meet_page(admin_sidebar, "/admin/meet", "/admin/meet")
 
-
-# ── Meet API ─────────────────────────────────────────────────────────────────
-
-@app.route("/api/meet/register", methods=["POST"])
-def api_meet_register():
-    caller = get_caller_identity()
-    if not caller: return jsonify({"ok": False}), 401
-    data = request.get_json(force=True) or {}
-    room = data.get("room", "")
-    peer_id = data.get("peer_id", "")
-    name = data.get("name", caller["name"])
-    if not room or not peer_id: return jsonify({"ok": False}), 400
-    rooms = load_meet_rooms()
-    if room not in rooms: rooms[room] = []
-    # Remove old entry for this user
-    rooms[room] = [p for p in rooms[room] if p.get("user_id") != caller["id"]]
-    rooms[room].append({"user_id": caller["id"], "peer_id": peer_id, "name": name, "ts": int(datetime.now().timestamp())})
-    save_meet_rooms(rooms)
-    return jsonify({"ok": True})
-
-@app.route("/api/meet/peers")
-def api_meet_peers():
-    caller = get_caller_identity()
-    if not caller: return jsonify({"ok": False}), 401
-    room = request.args.get("room", "")
-    if not room: return jsonify({"ok": False}), 400
-    rooms = load_meet_rooms()
-    peers = rooms.get(room, [])
-    # Only return peers active in last 30 seconds
-    now = int(datetime.now().timestamp())
-    active = [p for p in peers if now - p.get("ts", 0) < 30]
-    # Refresh own ts
-    for p in active:
-        if p.get("user_id") == caller["id"]: p["ts"] = now
-    if active != peers:
-        rooms[room] = active
-        save_meet_rooms(rooms)
-    return jsonify({"ok": True, "peers": active})
-
-@app.route("/api/meet/leave", methods=["POST"])
-def api_meet_leave():
-    caller = get_caller_identity()
-    if not caller: return jsonify({"ok": True})
-    data = request.get_json(force=True) or {}
-    room = data.get("room", "")
-    peer_id = data.get("peer_id", "")
-    if not room: return jsonify({"ok": True})
-    rooms = load_meet_rooms()
-    if room in rooms:
-        rooms[room] = [p for p in rooms[room] if p.get("peer_id") != peer_id]
-    save_meet_rooms(rooms)
-    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
