@@ -712,12 +712,11 @@ function showToast(msg, icon){
 // Active nav
 (function(){
   const links = document.querySelectorAll('.nav-item');
+  const path = window.location.pathname;
   links.forEach(l => {
-    if(l.getAttribute('href') && window.location.pathname.startsWith(l.getAttribute('href'))
-       && l.getAttribute('href') !== '/') {
-      l.classList.add('active');
-    }
-    if(l.getAttribute('href') === window.location.pathname) l.classList.add('active');
+    const href = l.getAttribute('href');
+    if(!href || href === '/' || href.includes('logout')) return;
+    if(path === href || path.startsWith(href + '/')) l.classList.add('active');
   });
 })();
 """
@@ -1272,15 +1271,31 @@ body {{
     return page
 
 
-@app.route("/logout")
+@app.after_request
+def no_cache_for_protected(response):
+    if request.path.startswith('/student/') or request.path.startswith('/admin/'):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
+    session.pop("admin_logged_in", None)
+    session.pop("admin_email", None)
     session.clear()
     return redirect(url_for("login"))
 
-@app.route("/student-logout")
+@app.route("/student-logout", methods=["GET", "POST"])
 def student_logout():
+    session.pop("student_logged_in", None)
+    session.pop("student_id", None)
     session.clear()
-    return redirect(url_for("login"))
+    response = redirect(url_for("login"))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 # ── Student self-registration ─────────────────────────────────────────────────
