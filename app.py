@@ -334,10 +334,19 @@ input,select,textarea{font-family:'DM Sans',sans-serif}
 .sidebar-toggle:hover{background:rgba(255,255,255,.08);color:#fff}
 .sidebar.collapsed .sidebar-toggle svg{transform:rotate(180deg)}
 
-.sidebar-section{padding:8px 0;flex:1;overflow-y:auto}
+.sidebar-section{padding:8px 0;flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
 .sidebar-section::-webkit-scrollbar{width:3px}
 .sidebar-section::-webkit-scrollbar-track{background:transparent}
 .sidebar-section::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+.sidebar-scroll-btn{
+  width:100%;border:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);
+  padding:5px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background var(--trans),color var(--trans);flex-shrink:0;
+}
+.sidebar-scroll-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.sidebar-scroll-btn svg{transition:transform .2s}
+.sidebar-scroll-btn:active svg{transform:scale(.85)}
+.sidebar.collapsed .sidebar-scroll-btn{opacity:0;pointer-events:none;height:0;padding:0;overflow:hidden}
 
 .sidebar-label{
   font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
@@ -700,6 +709,12 @@ function toggleSidebar(){
   if(s && localStorage.getItem('jh_sb') === '1') s.classList.add('collapsed');
 })();
 
+// Sidebar scroll
+function sidebarScroll(delta){
+  const nav = document.getElementById('sidebarNav');
+  if(nav) nav.scrollBy({top: delta, behavior: 'smooth'});
+}
+
 // Toast
 function showToast(msg, icon){
   let t = document.getElementById('globalToast');
@@ -804,10 +819,16 @@ def admin_sidebar(current_path=""):
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
   </div>
-  <div class="sidebar-section">
+  <button class="sidebar-scroll-btn" onclick="sidebarScroll(-80)" title="Scroll up">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+  <div class="sidebar-section" id="sidebarNav">
     <div class="sidebar-label">Main Menu</div>
     {nav_items}
   </div>
+  <button class="sidebar-scroll-btn" onclick="sidebarScroll(80)" title="Scroll down">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
   <div class="sidebar-footer">
     <div class="nav-item" style="margin:0;border-radius:8px;background:rgba(255,255,255,.04)">
       <div class="user-avatar" style="width:30px;height:30px;font-size:11px">{initials}</div>
@@ -858,10 +879,16 @@ def student_sidebar(current_path=""):
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
   </div>
-  <div class="sidebar-section">
+  <button class="sidebar-scroll-btn" onclick="sidebarScroll(-80)" title="Scroll up">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
+  <div class="sidebar-section" id="sidebarNav">
     <div class="sidebar-label">Navigation</div>
     {nav_items}
   </div>
+  <button class="sidebar-scroll-btn" onclick="sidebarScroll(80)" title="Scroll down">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+  </button>
   <div class="sidebar-footer">
     <div class="nav-item" style="margin:0;border-radius:8px;background:rgba(255,255,255,.04)">
       <div class="user-avatar" style="width:30px;height:30px;font-size:11px">{initials}</div>
