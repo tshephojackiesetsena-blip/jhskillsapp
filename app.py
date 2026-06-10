@@ -334,13 +334,13 @@ input,select,textarea{font-family:'DM Sans',sans-serif}
 .sidebar-toggle:hover{background:rgba(255,255,255,.08);color:#fff}
 .sidebar.collapsed .sidebar-toggle svg{transform:rotate(180deg)}
 
-.sidebar-section{padding:8px 0;flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.sidebar-section{padding:4px 0;flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
 .sidebar-section::-webkit-scrollbar{width:3px}
 .sidebar-section::-webkit-scrollbar-track{background:transparent}
 .sidebar-section::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
 .sidebar-scroll-btn{
   width:100%;border:none;background:rgba(255,255,255,.05);color:rgba(255,255,255,.4);
-  padding:5px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  padding:3px 0;cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:background var(--trans),color var(--trans);flex-shrink:0;
 }
 .sidebar-scroll-btn:hover{background:rgba(255,255,255,.1);color:#fff}
@@ -349,23 +349,23 @@ input,select,textarea{font-family:'DM Sans',sans-serif}
 .sidebar.collapsed .sidebar-scroll-btn{opacity:0;pointer-events:none;height:0;padding:0;overflow:hidden}
 
 .sidebar-label{
-  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
-  color:rgba(255,255,255,.25);padding:12px 20px 4px;
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;
+  color:rgba(255,255,255,.25);padding:6px 16px 2px;
   white-space:nowrap;overflow:hidden;
 }
 .sidebar.collapsed .sidebar-label{opacity:0}
 
 .nav-item{
-  display:flex;align-items:center;gap:12px;padding:9px 16px;
-  color:var(--sidebar-text);font-size:13.5px;font-weight:500;
-  text-decoration:none;border-radius:8px;margin:2px 8px;
+  display:flex;align-items:center;gap:9px;padding:6px 12px;
+  color:var(--sidebar-text);font-size:12px;font-weight:500;
+  text-decoration:none;border-radius:7px;margin:1px 6px;
   transition:background var(--trans),color var(--trans);position:relative;
   white-space:nowrap;overflow:hidden;
 }
 .nav-item:hover{background:rgba(255,255,255,.07);color:#fff;opacity:1}
 .nav-item.active{background:var(--sidebar-active-bg);color:var(--sidebar-active)}
 .nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--jh-teal);border-radius:0 3px 3px 0}
-.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.7;font-size:13px}
 .nav-item.active .nav-icon,.nav-item:hover .nav-icon{opacity:1}
 .nav-label{transition:opacity var(--trans);flex:1}
 .sidebar.collapsed .nav-label{opacity:0;width:0;overflow:hidden}
