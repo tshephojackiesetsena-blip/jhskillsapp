@@ -2,7 +2,10 @@ import json
 import os
 import secrets
 import string
-from datetime import datetime
+import smtplib
+from datetime import datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from functools import wraps
 
 from flask import Flask, jsonify, redirect, render_template_string, request, send_from_directory, session, url_for
@@ -38,6 +41,21 @@ CENTRAL_DOCUMENTS_FILE = os.path.join(DATA_DIR, "central_documents.json")
 STUDENTS_FILE = os.path.join(DATA_DIR, "students.json")
 MESSAGES_FILE = os.path.join(DATA_DIR, "messages.json")
 MEET_ROOMS_FILE = os.path.join(DATA_DIR, "meet_rooms.json")
+PENDING_FILE    = os.path.join(DATA_DIR, "pending_registrations.json")
+VERIF_FILE      = os.path.join(DATA_DIR, "verification_tokens.json")
+
+# ── Email config (set these environment variables on your server) ──────────
+MAIL_HOST     = os.environ.get("MAIL_HOST", "smtp.gmail.com")
+MAIL_PORT     = int(os.environ.get("MAIL_PORT", "587"))
+MAIL_USER     = os.environ.get("MAIL_USER", "")        # e.g. noreply@jhholdings.co.za
+MAIL_PASS     = os.environ.get("MAIL_PASS", "")
+MAIL_FROM     = os.environ.get("MAIL_FROM", MAIL_USER)
+APP_BASE_URL  = os.environ.get("APP_BASE_URL", "http://localhost:5000")
+
+# ── SMS / OTP config (Twilio) ─────────────────────────────────────────────
+TWILIO_SID    = os.environ.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_TOKEN  = os.environ.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM   = os.environ.get("TWILIO_FROM_NUMBER", "")  # e.g. +12345678900
 
 JH_GROUP = {
     "name": "JH Student Services",
@@ -115,6 +133,10 @@ def ensure_storage():
         with open(MESSAGES_FILE, "w") as f: json.dump([], f)
     if not os.path.exists(MEET_ROOMS_FILE):
         with open(MEET_ROOMS_FILE, "w") as f: json.dump({}, f)
+    if not os.path.exists(PENDING_FILE):
+        with open(PENDING_FILE, "w") as f: json.dump([], f)
+    if not os.path.exists(VERIF_FILE):
+        with open(VERIF_FILE, "w") as f: json.dump({}, f)
 
 def load_json(path, default):
     ensure_storage()
@@ -168,6 +190,164 @@ def create_meet_room(title, creator_name):
 def get_room_by_code(code):
     rooms = load_meet_rooms()
     return rooms.get(code.strip().upper())
+
+# ── Pending registrations ─────────────────────────────────────────────────
+def load_pending(): return load_json(PENDING_FILE, [])
+def save_pending(p): save_json(PENDING_FILE, p)
+
+# ── Verification tokens ───────────────────────────────────────────────────
+def load_verif(): return load_json(VERIF_FILE, {})
+def save_verif(v): save_json(VERIF_FILE, v)
+
+def _ensure_extra_files():
+    for path, default in [(PENDING_FILE, []), (VERIF_FILE, {})]:
+        if not os.path.exists(path):
+            with open(path, "w") as f:
+                json.dump(default, f)
+
+def create_email_token(pending_id):
+    """Generate a one-time email verification link token."""
+    _ensure_extra_files()
+    token = secrets.token_urlsafe(32)
+    store = load_verif()
+    store[f"email:{pending_id}"] = {
+        "token": token,
+        "expires": (datetime.now() + timedelta(hours=24)).isoformat(),
+        "used": False,
+    }
+    save_verif(store)
+    return token
+
+def create_phone_otp(pending_id):
+    """Generate a 6-digit SMS OTP."""
+    _ensure_extra_files()
+    otp = "".join(secrets.choice(string.digits) for _ in range(6))
+    store = load_verif()
+    store[f"otp:{pending_id}"] = {
+        "otp": otp,
+        "expires": (datetime.now() + timedelta(minutes=15)).isoformat(),
+        "used": False,
+        "attempts": 0,
+    }
+    save_verif(store)
+    return otp
+
+def verify_email_token(pending_id, token):
+    store = load_verif()
+    key = f"email:{pending_id}"
+    rec = store.get(key)
+    if not rec or rec["used"]: return False
+    if datetime.now() > datetime.fromisoformat(rec["expires"]): return False
+    if rec["token"] != token: return False
+    rec["used"] = True
+    save_verif(store)
+    return True
+
+def verify_phone_otp(pending_id, otp):
+    store = load_verif()
+    key = f"otp:{pending_id}"
+    rec = store.get(key)
+    if not rec or rec["used"]: return False, "OTP already used or not found."
+    if datetime.now() > datetime.fromisoformat(rec["expires"]): return False, "OTP has expired. Please resend."
+    rec["attempts"] = rec.get("attempts", 0) + 1
+    if rec["attempts"] > 5:
+        save_verif(store)
+        return False, "Too many attempts. Please resend the OTP."
+    if rec["otp"] != otp:
+        save_verif(store)
+        return False, "Incorrect OTP. Please try again."
+    rec["used"] = True
+    save_verif(store)
+    return True, "ok"
+
+# ── Email sender ──────────────────────────────────────────────────────────
+def send_email(to_addr, subject, html_body):
+    """Send an email via SMTP. Silently logs failures if not configured."""
+    if not MAIL_USER or not MAIL_PASS:
+        print(f"[EMAIL - not configured] To: {to_addr}  Subject: {subject}")
+        return False
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = MAIL_FROM
+        msg["To"]      = to_addr
+        msg.attach(MIMEText(html_body, "html"))
+        with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(MAIL_USER, MAIL_PASS)
+            server.sendmail(MAIL_FROM, to_addr, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"[EMAIL ERROR] {e}")
+        return False
+
+def send_verification_email(to_addr, full_name, pending_id, token):
+    link = f"{APP_BASE_URL}/verify-email?id={pending_id}&token={token}"
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e0e0e0">
+      <div style="background:linear-gradient(135deg,#8DC63F,#00A89D);padding:28px 32px">
+        <h1 style="color:#fff;margin:0;font-size:22px">JH Student Portal</h1>
+        <p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:14px">Email Verification</p>
+      </div>
+      <div style="padding:32px">
+        <p style="font-size:15px;color:#222">Hi <strong>{full_name}</strong>,</p>
+        <p style="font-size:14px;color:#555">Thank you for registering. Please verify your email address to continue:</p>
+        <div style="text-align:center;margin:28px 0">
+          <a href="{link}" style="background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:700;display:inline-block">
+            ✅ Verify Email Address
+          </a>
+        </div>
+        <p style="font-size:12px;color:#999">This link expires in 24 hours. If you did not register, please ignore this email.</p>
+      </div>
+    </div>"""
+    return send_email(to_addr, "Verify your email — JH Student Portal", html)
+
+def send_otp_sms(phone_number, otp, full_name):
+    """Send OTP via Twilio SMS. Falls back to print if not configured."""
+    message_body = f"Hi {full_name.split()[0]}, your JH Portal OTP is: {otp}. Valid for 15 minutes. Do not share this code."
+    if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_FROM:
+        print(f"[SMS - not configured] To: {phone_number}  OTP: {otp}")
+        return False
+    try:
+        import urllib.request, urllib.parse, base64
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json"
+        data = urllib.parse.urlencode({
+            "From": TWILIO_FROM,
+            "To": phone_number,
+            "Body": message_body,
+        }).encode()
+        credentials = base64.b64encode(f"{TWILIO_SID}:{TWILIO_TOKEN}".encode()).decode()
+        req = urllib.request.Request(url, data=data, headers={"Authorization": f"Basic {credentials}"})
+        urllib.request.urlopen(req, timeout=10)
+        return True
+    except Exception as e:
+        print(f"[SMS ERROR] {e}")
+        return False
+
+def send_approval_email(to_addr, full_name, username, password):
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e0e0e0">
+      <div style="background:linear-gradient(135deg,#8DC63F,#00A89D);padding:28px 32px">
+        <h1 style="color:#fff;margin:0;font-size:22px">JH Student Portal</h1>
+        <p style="color:rgba(255,255,255,.85);margin:4px 0 0;font-size:14px">Registration Approved 🎉</p>
+      </div>
+      <div style="padding:32px">
+        <p style="font-size:15px;color:#222">Hi <strong>{full_name}</strong>,</p>
+        <p style="font-size:14px;color:#555">Your registration has been approved by our admin team. You can now sign in to the portal:</p>
+        <div style="background:#f5faf3;border:1px solid #c8e0c0;border-radius:8px;padding:16px 20px;margin:20px 0;font-size:14px">
+          <div style="margin-bottom:6px"><strong>Username:</strong> <code>{username}</code></div>
+          <div><strong>Password:</strong> <code>{password}</code></div>
+        </div>
+        <div style="text-align:center;margin:20px 0">
+          <a href="{APP_BASE_URL}/" style="background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:700;display:inline-block">
+            Sign In to Portal →
+          </a>
+        </div>
+        <p style="font-size:12px;color:#999">We recommend changing your password after your first login.</p>
+      </div>
+    </div>"""
+    return send_email(to_addr, "Your JH Portal account is approved — Welcome!", html)
 
 def load_learner_document_store(): return load_json(LEARNER_DOCUMENTS_FILE, {})
 def save_learner_document_store(s): save_json(LEARNER_DOCUMENTS_FILE, s)
@@ -913,10 +1093,13 @@ def login():
         # Check student
         student = get_student_by_username(identifier)
         if student and student["password"] == password:
-            session.clear()
-            session["student_logged_in"] = True
-            session["student_id"] = student["id"]
-            return redirect(url_for("student_dashboard"))
+            if student.get("status") not in ("Active", "Inactive"):
+                error = "Your account is pending admin approval. You will receive an email once approved."
+            else:
+                session.clear()
+                session["student_logged_in"] = True
+                session["student_id"] = student["id"]
+                return redirect(url_for("student_dashboard"))
 
         error = "Invalid credentials. Please check your email/username and password."
 
@@ -1326,16 +1509,17 @@ def student_signup():
 
     error = None
     success = None
+    pending_id = None
 
     if request.method == "POST":
         full_name = request.form.get("full_name", "").strip()
-        email = request.form.get("email", "").strip()
-        phone = request.form.get("phone", "").strip()
+        email     = request.form.get("email", "").strip()
+        phone     = request.form.get("phone", "").strip()
         id_number = request.form.get("id_number", "").strip()
-        gender = request.form.get("gender", "").strip()
-        address = request.form.get("address", "").strip()
+        gender    = request.form.get("gender", "").strip()
+        address   = request.form.get("address", "").strip()
         programme = request.form.get("programme", "").strip()
-        password = request.form.get("password", "").strip()
+        password  = request.form.get("password", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
 
         if not all([full_name, email, phone, id_number, gender, address, programme, password]):
@@ -1346,34 +1530,30 @@ def student_signup():
             error = "Password must be at least 6 characters."
         else:
             students = load_students()
-            # Check for duplicate email or ID
-            existing = [s for s in students if s.get("email","").lower() == email.lower() or s.get("id_number","") == id_number]
-            if existing:
+            pending  = load_pending()
+            existing_students = [s for s in students if s.get("email","").lower() == email.lower() or s.get("id_number","") == id_number]
+            existing_pending  = [p for p in pending  if p.get("email","").lower() == email.lower() or p.get("id_number","") == id_number]
+            if existing_students or existing_pending:
                 error = "An account with this email or ID number already exists."
             else:
-                n = 1000 + len(students) + 1
-                sid = str(n)
-                first_name = full_name.split()[0].lower()
-                new_student = {
-                    "id": sid, "student_number": f"2026{sid}", "full_name": full_name,
-                    "email": email, "phone": phone, "id_number": id_number,
-                    "gender": gender, "address": address, "employment": "Unemployed",
-                    "qualification": programme, "faculty": "Pending Assignment",
-                    "programme": programme, "coordinator": "Pending Assignment",
-                    "location": "Pending Assignment", "start_date": datetime.now().strftime("%Y-%m-%d"),
-                    "status": "Pending", "username": f"learner.jh-{sid}",
-                    "password": password, "campus": "Pending Assignment",
-                    "year_level": "Year 1",
-                    "emergency_contact_name": "", "emergency_contact_phone": "",
-                    "emergency_contact_relationship": "",
-                    "modules": [], "tuition_balance": "R0",
-                    "bursary_status": "Pending", "registration_status": "Pending",
-                    "lms_link": "https://canvas.instructure.com/",
-                    "portal_email": f"{first_name}.{sid}@student.jh.co.za",
+                pid = secrets.token_hex(12)
+                record = {
+                    "id": pid, "full_name": full_name, "email": email, "phone": phone,
+                    "id_number": id_number, "gender": gender, "address": address,
+                    "programme": programme, "password": password,
+                    "submitted_at": datetime.now().isoformat(),
+                    "email_verified": False, "phone_verified": False,
                 }
-                students.append(new_student)
-                save_students(students)
-                success = f"Registration successful! Your username is <strong>learner.jh-{sid}</strong>. Please wait for admin approval before signing in."
+                pending.append(record)
+                save_pending(pending)
+
+                email_token = create_email_token(pid)
+                otp         = create_phone_otp(pid)
+                send_verification_email(email, full_name, pid, email_token)
+                send_otp_sms(phone, otp, full_name)
+
+                pending_id = pid
+                success = "submitted"
 
     PROGRAMMES = [
         "Diploma in Information Technology",
@@ -1385,6 +1565,161 @@ def student_signup():
         "Learnerships: Generic Management NQF 5",
         "Other / Not Listed",
     ]
+
+    if success == "submitted":
+        # Show verification UI
+        page = render_template_string(f"""
+<!DOCTYPE html>
+<html data-theme="light" lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verify Your Details — JH Portal</title>
+<style>{BASE_STYLES}
+body{{background:var(--bg);min-height:100vh}}
+.vbox{{max-width:480px;margin:60px auto;padding:20px}}
+.vcard{{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px;box-shadow:0 4px 32px rgba(0,0,0,.07)}}
+.vstep{{display:flex;align-items:center;gap:10px;margin-bottom:24px;font-size:13.5px;color:var(--text-2)}}
+.vstep-num{{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}}
+.vstep-num.done{{background:rgba(34,197,94,.15);color:#16a34a}}
+.vstep-num.active{{background:var(--jh-teal);color:#fff}}
+.vstep-num.wait{{background:var(--bg-2);color:var(--text-3)}}
+.otp-inputs{{display:flex;gap:8px;justify-content:center;margin:18px 0}}
+.otp-inputs input{{width:44px;height:52px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg-2);color:var(--text);font-size:22px;font-weight:700;text-align:center;font-family:'Syne',sans-serif;outline:none}}
+.otp-inputs input:focus{{border-color:var(--jh-teal);box-shadow:0 0 0 3px rgba(0,168,157,.12)}}
+.vbtn{{width:100%;background:var(--jh-grad);border:none;border-radius:8px;padding:13px;color:#fff;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;margin-top:8px;transition:opacity .2s}}
+.vbtn:hover{{opacity:.9}}
+.vmsg{{font-size:13px;margin-top:12px;min-height:20px;text-align:center}}
+.vmsg.err{{color:#e05555}}.vmsg.ok{{color:#16a34a}}
+</style>
+<script>(function(){{const t=localStorage.getItem('jh_theme')||'light';document.documentElement.setAttribute('data-theme',t);}})();</script>
+</head>
+<body>
+<div class="vbox">
+  <div style="text-align:center;margin-bottom:28px">
+    <img src="https://jhtraining.co.za/images/jhdevelopment.png" style="height:56px" onerror="this.style.display='none'">
+    <h1 style="font-family:'Syne',sans-serif;font-size:22px;margin:12px 0 4px">Almost there!</h1>
+    <p style="color:var(--text-2);font-size:14px">Verify your email and mobile number to complete registration</p>
+  </div>
+
+  <div class="vcard" id="emailCard">
+    <div class="vstep"><div class="vstep-num active" id="step1num">1</div><div><strong>Verify your email</strong><br><span style="font-size:12px;color:var(--text-3)">Check your inbox for a verification link</span></div></div>
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13.5px;text-align:center;margin-bottom:16px">
+      📧 We sent a link to <strong>your email</strong>.<br>Click it to verify, then come back here.
+    </div>
+    <div id="emailWait" style="text-align:center;color:var(--text-3);font-size:13px">Waiting for email verification…</div>
+    <button class="vbtn" style="background:var(--bg-2);color:var(--text-2);border:1px solid var(--border);margin-top:14px" onclick="checkEmailStatus()">
+      ✅ I've verified my email
+    </button>
+    <div style="text-align:center;margin-top:10px">
+      <a href="#" onclick="resendEmail()" style="font-size:12px;color:var(--jh-teal)">Resend verification email</a>
+    </div>
+    <div class="vmsg" id="emailMsg"></div>
+  </div>
+
+  <div class="vcard" id="otpCard" style="display:none;margin-top:20px">
+    <div class="vstep"><div class="vstep-num active" id="step2num">2</div><div><strong>Verify your mobile number</strong><br><span style="font-size:12px;color:var(--text-3)">Enter the 6-digit OTP sent to your phone</span></div></div>
+    <div class="otp-inputs" id="otpInputs">
+      <input type="text" maxlength="1" oninput="otpNext(this,0)" onkeydown="otpBack(event,0)">
+      <input type="text" maxlength="1" oninput="otpNext(this,1)" onkeydown="otpBack(event,1)">
+      <input type="text" maxlength="1" oninput="otpNext(this,2)" onkeydown="otpBack(event,2)">
+      <input type="text" maxlength="1" oninput="otpNext(this,3)" onkeydown="otpBack(event,3)">
+      <input type="text" maxlength="1" oninput="otpNext(this,4)" onkeydown="otpBack(event,4)">
+      <input type="text" maxlength="1" oninput="otpNext(this,5)" onkeydown="otpBack(event,5)">
+    </div>
+    <button class="vbtn" onclick="submitOtp()">Verify OTP →</button>
+    <div style="text-align:center;margin-top:10px">
+      <a href="#" onclick="resendOtp()" style="font-size:12px;color:var(--jh-teal)">Resend OTP</a>
+    </div>
+    <div class="vmsg" id="otpMsg"></div>
+  </div>
+
+  <div id="doneCard" style="display:none;margin-top:20px">
+    <div class="vcard" style="text-align:center">
+      <div style="font-size:56px;margin-bottom:12px">🎉</div>
+      <h2 style="font-family:'Syne',sans-serif;font-size:20px;margin-bottom:8px">Verification Complete!</h2>
+      <p style="color:var(--text-2);font-size:14px;line-height:1.6">Your registration is now awaiting admin approval.<br>You'll receive an email with your login details once approved.</p>
+      <a href="/" style="display:inline-block;margin-top:20px;background:var(--jh-grad);color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-family:'Syne',sans-serif">← Back to Sign In</a>
+    </div>
+  </div>
+</div>
+<script>
+const PENDING_ID = '{pending_id}';
+const otpEls = Array.from(document.querySelectorAll('#otpInputs input'));
+
+function otpNext(el, idx) {{
+  el.value = el.value.replace(/\\D/g,'');
+  if (el.value && idx < 5) otpEls[idx+1].focus();
+}}
+function otpBack(e, idx) {{
+  if (e.key === 'Backspace' && !otpEls[idx].value && idx > 0) otpEls[idx-1].focus();
+}}
+
+async function checkEmailStatus() {{
+  const res = await fetch('/api/verify/email-status', {{
+    method:'POST', headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{id: PENDING_ID}})
+  }});
+  const d = await res.json();
+  const msg = document.getElementById('emailMsg');
+  if (d.verified) {{
+    msg.className = 'vmsg ok'; msg.textContent = '✅ Email verified!';
+    document.getElementById('step1num').className = 'vstep-num done';
+    document.getElementById('step1num').textContent = '✓';
+    setTimeout(() => {{
+      document.getElementById('otpCard').style.display = 'block';
+      otpEls[0].focus();
+    }}, 600);
+  }} else {{
+    msg.className = 'vmsg err'; msg.textContent = 'Not verified yet — please click the link in your email.';
+  }}
+}}
+
+async function resendEmail() {{
+  const res = await fetch('/api/verify/resend-email', {{
+    method:'POST', headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{id: PENDING_ID}})
+  }});
+  const d = await res.json();
+  const msg = document.getElementById('emailMsg');
+  msg.className = 'vmsg ok'; msg.textContent = d.message || 'Resent!';
+}}
+
+async function submitOtp() {{
+  const otp = otpEls.map(e => e.value).join('');
+  if (otp.length !== 6) {{ document.getElementById('otpMsg').className='vmsg err'; document.getElementById('otpMsg').textContent='Enter all 6 digits.'; return; }}
+  const res = await fetch('/api/verify/otp', {{
+    method:'POST', headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{id: PENDING_ID, otp}})
+  }});
+  const d = await res.json();
+  const msg = document.getElementById('otpMsg');
+  if (d.ok) {{
+    msg.className='vmsg ok'; msg.textContent='✅ Phone verified!';
+    setTimeout(() => {{
+      document.getElementById('emailCard').style.display='none';
+      document.getElementById('otpCard').style.display='none';
+      document.getElementById('doneCard').style.display='block';
+    }}, 800);
+  }} else {{
+    msg.className='vmsg err'; msg.textContent = d.error || 'Invalid OTP.';
+    otpEls.forEach(e => e.value=''); otpEls[0].focus();
+  }}
+}}
+
+async function resendOtp() {{
+  const res = await fetch('/api/verify/resend-otp', {{
+    method:'POST', headers:{{'Content-Type':'application/json'}},
+    body: JSON.stringify({{id: PENDING_ID}})
+  }});
+  const d = await res.json();
+  const msg = document.getElementById('otpMsg');
+  msg.className='vmsg ok'; msg.textContent = d.message || 'OTP resent!';
+}}
+</script>
+</body>
+</html>
+""")
+        return page
 
     page = render_template_string(f"""
 <!DOCTYPE html>
@@ -1481,19 +1816,6 @@ body {{ background: var(--bg); min-height: 100vh; }}
   margin-bottom: 20px;
 }}
 
-.signup-success {{
-  background: rgba(141,198,63,.1);
-  border: 1px solid rgba(141,198,63,.35);
-  border-radius: 8px;
-  padding: 14px 16px;
-  color: #2D6A4F;
-  font-size: 14px;
-  margin-bottom: 20px;
-  line-height: 1.6;
-}}
-
-[data-theme="dark"] .signup-success {{ color: var(--jh-green); }}
-
 .section-divider {{
   font-family: 'Syne', sans-serif;
   font-weight: 700;
@@ -1562,24 +1884,32 @@ body {{ background: var(--bg); min-height: 100vh; }}
 
     <div class="signup-card">
       {'<div class="signup-error">⚠️ ' + error + '</div>' if error else ''}
-      {'<div class="signup-success">✅ ' + success + '<br><br><a href="/" style="color:var(--jh-teal);font-weight:600">← Back to Sign In</a></div>' if success else ''}
 
-      {'<form method="POST">' if not success else ''}
+      <form method="POST">
 
-      {'<div class="section-divider">Personal Information</div>' if not success else ''}
-      {'<div class="field"><label>Full Name *</label><input name="full_name" type="text" placeholder="e.g. Thabo Mokoena" required></div>' if not success else ''}
-      {'<div class="field-row"><div class="field"><label>Email Address *</label><input name="email" type="email" placeholder="your@email.com" required></div><div class="field"><label>Phone Number *</label><input name="phone" type="tel" placeholder="e.g. 071 234 5678" required></div></div>' if not success else ''}
-      {'<div class="field-row"><div class="field"><label>ID Number *</label><input name="id_number" type="text" placeholder="13-digit SA ID number" required></div><div class="field"><label>Gender *</label><select name="gender" required><option value="">Select gender</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div></div>' if not success else ''}
-      {'<div class="field"><label>Residential Address *</label><input name="address" type="text" placeholder="e.g. Johannesburg, Gauteng" required></div>' if not success else ''}
+      <div class="section-divider">Personal Information</div>
+      <div class="field"><label>Full Name *</label><input name="full_name" type="text" placeholder="e.g. Thabo Mokoena" required></div>
+      <div class="field-row">
+        <div class="field"><label>Email Address *</label><input name="email" type="email" placeholder="your@email.com" required></div>
+        <div class="field"><label>Phone Number *</label><input name="phone" type="tel" placeholder="e.g. +27 71 234 5678" required></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>ID Number *</label><input name="id_number" type="text" placeholder="13-digit SA ID number" required></div>
+        <div class="field"><label>Gender *</label><select name="gender" required><option value="">Select gender</option><option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
+      </div>
+      <div class="field"><label>Residential Address *</label><input name="address" type="text" placeholder="e.g. Johannesburg, Gauteng" required></div>
 
-      {'<div class="section-divider">Programme Selection</div>' if not success else ''}
-      {'<div class="field"><label>Programme / Course *</label><select name="programme" required><option value="">Select a programme</option>' + "".join(f"<option>{p}</option>" for p in PROGRAMMES) + '</select></div>' if not success else ''}
+      <div class="section-divider">Programme Selection</div>
+      <div class="field"><label>Programme / Course *</label><select name="programme" required><option value="">Select a programme</option>{"".join(f"<option>{p}</option>" for p in PROGRAMMES)}</select></div>
 
-      {'<div class="section-divider">Set Your Password</div>' if not success else ''}
-      {'<div class="field-row"><div class="field"><label>Password *</label><input name="password" type="password" placeholder="Min. 6 characters" required></div><div class="field"><label>Confirm Password *</label><input name="confirm_password" type="password" placeholder="Repeat password" required></div></div>' if not success else ''}
+      <div class="section-divider">Set Your Password</div>
+      <div class="field-row">
+        <div class="field"><label>Password *</label><input name="password" type="password" placeholder="Min. 6 characters" required></div>
+        <div class="field"><label>Confirm Password *</label><input name="confirm_password" type="password" placeholder="Repeat password" required></div>
+      </div>
 
-      {'<button class="btn-jh-primary" type="submit">Submit Registration →</button>' if not success else ''}
-      {'</form>' if not success else ''}
+      <button class="btn-jh-primary" type="submit">Submit Registration →</button>
+      </form>
 
       <div class="back-link"><a href="/">← Already have an account? Sign in</a></div>
     </div>
@@ -1590,6 +1920,140 @@ body {{ background: var(--bg); min-height: 100vh; }}
 </html>
 """)
     return page
+
+
+# ── Email-link verification ───────────────────────────────────────────────────
+@app.route("/verify-email")
+def verify_email():
+    pid   = request.args.get("id", "")
+    token = request.args.get("token", "")
+    ok    = verify_email_token(pid, token)
+    if ok:
+        pending = load_pending()
+        for p in pending:
+            if p["id"] == pid:
+                p["email_verified"] = True
+                break
+        save_pending(pending)
+        msg = "✅ Email verified successfully! Go back to the registration page and click <strong>'I've verified my email'</strong> to continue."
+        colour = "#2D6A4F"
+    else:
+        msg = "⚠️ This verification link is invalid or has already been used."
+        colour = "#e05555"
+    return render_template_string(f"""<!DOCTYPE html><html data-theme="light" lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email Verification — JH Portal</title><style>{BASE_STYLES}</style></head><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)"><div style="max-width:460px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;text-align:center;box-shadow:0 4px 32px rgba(0,0,0,.07)"><img src="https://jhtraining.co.za/images/jhdevelopment.png" style="height:56px;margin-bottom:20px" onerror="this.style.display='none'"><p style="font-size:15px;color:{colour};line-height:1.7">{msg}</p><a href="/" style="display:inline-block;margin-top:24px;color:var(--jh-teal);font-weight:600;font-size:14px">← Back to Portal</a></div></body></html>""")
+
+
+# ── Verification API endpoints ────────────────────────────────────────────────
+@app.route("/api/verify/email-status", methods=["POST"])
+def api_verify_email_status():
+    data = request.get_json(force=True) or {}
+    pid  = data.get("id", "")
+    pending = load_pending()
+    for p in pending:
+        if p["id"] == pid:
+            return jsonify({"verified": p.get("email_verified", False)})
+    return jsonify({"verified": False})
+
+@app.route("/api/verify/resend-email", methods=["POST"])
+def api_resend_email():
+    data = request.get_json(force=True) or {}
+    pid  = data.get("id", "")
+    pending = load_pending()
+    rec = next((p for p in pending if p["id"] == pid), None)
+    if not rec:
+        return jsonify({"ok": False, "message": "Registration not found."})
+    token = create_email_token(pid)
+    send_verification_email(rec["email"], rec["full_name"], pid, token)
+    return jsonify({"ok": True, "message": "Verification email resent. Check your inbox."})
+
+@app.route("/api/verify/otp", methods=["POST"])
+def api_verify_otp():
+    data = request.get_json(force=True) or {}
+    pid  = data.get("id", "")
+    otp  = data.get("otp", "").strip()
+    # Must also have email verified first
+    pending = load_pending()
+    rec = next((p for p in pending if p["id"] == pid), None)
+    if not rec:
+        return jsonify({"ok": False, "error": "Registration not found."})
+    if not rec.get("email_verified"):
+        return jsonify({"ok": False, "error": "Please verify your email first."})
+    ok, msg = verify_phone_otp(pid, otp)
+    if ok:
+        rec["phone_verified"] = True
+        rec["status"] = "Pending Admin"
+        save_pending(pending)
+        return jsonify({"ok": True})
+    return jsonify({"ok": False, "error": msg})
+
+@app.route("/api/verify/resend-otp", methods=["POST"])
+def api_resend_otp():
+    data = request.get_json(force=True) or {}
+    pid  = data.get("id", "")
+    pending = load_pending()
+    rec = next((p for p in pending if p["id"] == pid), None)
+    if not rec:
+        return jsonify({"ok": False, "message": "Registration not found."})
+    otp = create_phone_otp(pid)
+    send_otp_sms(rec["phone"], otp, rec["full_name"])
+    return jsonify({"ok": True, "message": "OTP resent to your phone."})
+
+
+# ── Admin: approve learner ────────────────────────────────────────────────────
+@app.route("/api/admin/approve-learner", methods=["POST"])
+@admin_required
+def api_approve_learner():
+    data = request.get_json(force=True) or {}
+    pid  = data.get("id", "")
+    pending = load_pending()
+    rec = next((p for p in pending if p["id"] == pid), None)
+    if not rec:
+        return jsonify({"ok": False, "error": "Pending registration not found."})
+
+    students = load_students()
+    n   = 1000 + len(students) + 1
+    sid = str(n)
+    first_name = rec["full_name"].split()[0].lower()
+    username   = f"learner.jh-{sid}"
+    password   = rec["password"]
+
+    new_student = {
+        "id": sid, "student_number": f"2026{sid}", "full_name": rec["full_name"],
+        "email": rec["email"], "phone": rec["phone"], "id_number": rec["id_number"],
+        "gender": rec["gender"], "address": rec["address"], "employment": "Unemployed",
+        "qualification": rec["programme"], "faculty": "Pending Assignment",
+        "programme": rec["programme"], "coordinator": "Pending Assignment",
+        "location": "Pending Assignment", "start_date": datetime.now().strftime("%Y-%m-%d"),
+        "status": "Active", "username": username, "password": password,
+        "campus": "Pending Assignment", "year_level": "Year 1",
+        "emergency_contact_name": "", "emergency_contact_phone": "",
+        "emergency_contact_relationship": "",
+        "modules": [], "tuition_balance": "R0",
+        "bursary_status": "Pending", "registration_status": "Registered",
+        "lms_link": "https://canvas.instructure.com/",
+        "portal_email": f"{first_name}.{sid}@student.jh.co.za",
+    }
+    students.insert(0, new_student)
+    save_students(students)
+
+    # Remove from pending
+    pending = [p for p in pending if p["id"] != pid]
+    save_pending(pending)
+
+    # Notify learner
+    send_approval_email(rec["email"], rec["full_name"], username, password)
+
+    return jsonify({"ok": True, "student": new_student})
+
+@app.route("/api/admin/reject-learner", methods=["POST"])
+@admin_required
+def api_reject_learner():
+    data = request.get_json(force=True) or {}
+    pid  = data.get("id", "")
+    pending = load_pending()
+    pending = [p for p in pending if p["id"] != pid]
+    save_pending(pending)
+    return jsonify({"ok": True})
 
 
 # ── Admin routes ──────────────────────────────────────────────────────────────
@@ -1670,6 +2134,7 @@ def admin_dashboard():
 @admin_required
 def learners():
     students = load_students()
+    pending  = [p for p in load_pending() if p.get("status") == "Pending Admin"]
     rows = "".join(f'''
     <tr>
       <td><a href="/learners/{s['id']}" style="font-weight:600">{s['full_name']}</a></td>
@@ -1679,11 +2144,51 @@ def learners():
       <td><span class="badge badge-{'green' if s.get('status')=='Active' else 'gray'}">{s.get('status','')}</span></td>
       <td><a href="/learners/{s['id']}" class="btn btn-secondary btn-sm">View</a></td>
     </tr>''' for s in students)
+
+    pending_badge = f'<span style="background:#e05555;color:#fff;border-radius:20px;font-size:11px;font-weight:700;padding:2px 8px;margin-left:8px">{len(pending)}</span>' if pending else ''
+    pending_rows  = "".join(f'''
+    <tr id="pr-{p['id']}">
+      <td style="font-weight:600">{p['full_name']}</td>
+      <td style="color:var(--text-2)">{p.get('email','')}</td>
+      <td>{p.get('phone','')}</td>
+      <td>{p.get('programme','')[:35]}</td>
+      <td style="color:var(--text-3);font-size:12px">{p.get('submitted_at','')[:10]}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button onclick="approveLearner('{p['id']}')"
+            style="background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap">
+            ✅ Approve
+          </button>
+          <button onclick="rejectLearner('{p['id']}')"
+            style="background:none;border:1px solid #dc3535;color:#dc3535;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">
+            ✕
+          </button>
+        </div>
+      </td>
+    </tr>''' for p in pending)
+
+    pending_section = f"""
+<div class="card" style="margin-bottom:24px;border:1.5px solid rgba(229,115,115,.35);background:rgba(229,115,115,.04)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="card-title" style="margin:0;color:#c0392b">🔔 Pending Approvals{pending_badge}</div>
+    <span style="font-size:12px;color:var(--text-3)">{len(pending)} learner{'s' if len(pending)!=1 else ''} awaiting review</span>
+  </div>
+  <div class="table-wrap">
+    <table id="pendingTable">
+      <thead><tr><th>Full Name</th><th>Email</th><th>Phone</th><th>Programme</th><th>Submitted</th><th></th></tr></thead>
+      <tbody>{pending_rows}</tbody>
+    </table>
+  </div>
+</div>""" if pending else ""
+
     content = f"""
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
-  <div><h1>Learner Register</h1><p>{len(students)} registered students</p></div>
+  <div><h1>Learner Register</h1><p>{len(students)} registered students{(' · ' + str(len(pending)) + ' pending approval') if pending else ''}</p></div>
   <button class="quick-add" onclick="document.getElementById('regModal').style.display='flex'">➕ Register Learner</button>
 </div>
+
+{pending_section}
+
 <div class="card" style="margin-bottom:20px">
   <div style="display:flex;gap:10px;align-items:center">
     <div class="search-bar" style="flex:1">
@@ -1779,6 +2284,50 @@ async function registerStudent() {{
   }} else {{
     msg.style.cssText = 'display:block;background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);border-radius:8px;padding:10px 14px;color:#e05555;font-size:13px';
     msg.textContent = '⚠️ ' + json.message;
+  }}
+}}
+
+async function approveLearner(id) {{
+  const btn = document.querySelector(`#pr-${{id}} button`);
+  if (btn) {{ btn.textContent = 'Approving…'; btn.disabled = true; }}
+  const res = await fetch('/api/admin/approve-learner', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{id}})
+  }});
+  const json = await res.json();
+  if (json.ok) {{
+    const row = document.getElementById(`pr-${{id}}`);
+    if (row) {{
+      row.style.background = 'rgba(34,197,94,.08)';
+      row.cells[5].innerHTML = '<span style="color:#16a34a;font-size:13px;font-weight:600">✅ Approved</span>';
+      setTimeout(() => {{ row.remove(); checkEmptyPending(); }}, 1800);
+    }}
+  }} else {{
+    alert(json.error || 'Approval failed.');
+    if (btn) {{ btn.textContent = '✅ Approve'; btn.disabled = false; }}
+  }}
+}}
+
+async function rejectLearner(id) {{
+  if (!confirm('Remove this registration?')) return;
+  const res = await fetch('/api/admin/reject-learner', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{id}})
+  }});
+  const json = await res.json();
+  if (json.ok) {{
+    const row = document.getElementById(`pr-${{id}}`);
+    if (row) {{ row.remove(); checkEmptyPending(); }}
+  }}
+}}
+
+function checkEmptyPending() {{
+  const tbody = document.querySelector('#pendingTable tbody');
+  if (tbody && tbody.rows.length === 0) {{
+    const card = tbody.closest('.card');
+    if (card) card.remove();
   }}
 }}
 </script>
@@ -3193,6 +3742,20 @@ def _student_meet_page(sidebar_fn, sidebar_path, base_route):
       <button class="meet-join-btn" onclick="joinWithCode()">
         🎥 &nbsp;Join Meeting
       </button>
+
+      <!-- Rejoin banner — shown after leaving a meeting -->
+      <div id="rejoinBanner" style="display:none;margin-top:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:14px 16px;text-align:left">
+        <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Last meeting</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="rejoinTitle" style="flex:1;font-size:13.5px;color:#ccc"></span>
+          <span id="rejoinCode" style="font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:.12em;color:#00A89D"></span>
+          <button onclick="doRejoin()"
+            style="background:linear-gradient(135deg,#8DC63F,#00A89D);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;white-space:nowrap">
+            ↩ Rejoin
+          </button>
+        </div>
+      </div>
+
       <div class="meet-hint">
         Your moderator will share the code before the meeting starts.
       </div>
@@ -3215,6 +3778,7 @@ def _student_meet_page(sidebar_fn, sidebar_path, base_route):
 
 <script>
 const MY_NAME_MEET = '{user_name}';
+let lastRoom = null;
 
 async function joinWithCode() {{
   const code = document.getElementById('codeInput').value.trim().toUpperCase();
@@ -3233,11 +3797,19 @@ async function joinWithCode() {{
     document.getElementById('codeError').textContent = data.error || 'Invalid or expired code.';
     return;
   }}
-  const jitsiRoom = data.room.jitsi_room;
-  document.getElementById('roomBadge').textContent = data.room.title;
+  lastRoom = {{ code, jitsiRoom: data.room.jitsi_room, title: data.room.title }};
+  launchMeeting(data.room.jitsi_room, data.room.title);
+}}
+
+function doRejoin() {{
+  if (!lastRoom) return;
+  launchMeeting(lastRoom.jitsiRoom, lastRoom.title);
+}}
+
+function launchMeeting(jitsiRoom, title) {{
+  document.getElementById('roomBadge').textContent = title;
   document.getElementById('lobbyPanel').style.display = 'none';
   document.getElementById('meetingPanel').classList.add('shown');
-
   const jitsiUrl = 'https://meet.jit.si/' + encodeURIComponent(jitsiRoom)
     + '#userInfo.displayName="' + encodeURIComponent(MY_NAME_MEET) + '"'
     + '&config.prejoinPageEnabled=false'
@@ -3253,6 +3825,11 @@ function leaveMeet() {{
   document.getElementById('meetingPanel').classList.remove('shown');
   document.getElementById('lobbyPanel').style.display = 'flex';
   document.getElementById('codeInput').value = '';
+  if (lastRoom) {{
+    document.getElementById('rejoinTitle').textContent = lastRoom.title;
+    document.getElementById('rejoinCode').textContent = lastRoom.code;
+    document.getElementById('rejoinBanner').style.display = 'block';
+  }}
 }}
 </script>
 """
