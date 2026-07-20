@@ -2507,11 +2507,15 @@ def learner_profile(student_id):
   </div>
   <div style="margin-top:16px">
     <div class="card-title">Upload Document</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <select id="docCat" class="btn btn-secondary" style="padding:9px 12px">
         {''.join(f'<option value="{dt["id"]}">{dt["label"]}</option>' for dt in LEARNER_DOCUMENT_TYPES)}
       </select>
-      <input type="file" id="docFile" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px">
+      <input type="file" id="docFile" multiple style="display:none" onchange="pickFileSource('docFile','docFileLabel')">
+      <input type="file" id="docFolder" webkitdirectory directory multiple style="display:none" onchange="pickFileSource('docFolder','docFileLabel')">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('docFile').click()">📄 Choose Files</button>
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('docFolder').click()">📁 Choose Folder</button>
+      <span id="docFileLabel" style="font-size:12px;color:var(--text-3)">No files selected</span>
       <button class="btn btn-primary" onclick="uploadDoc('{student_id}')">Upload</button>
     </div>
     <div id="uploadMsg" style="margin-top:8px;font-size:13px"></div>
@@ -2525,11 +2529,25 @@ def learner_profile(student_id):
     <a href="{d['download_url']}" class="btn btn-secondary btn-sm">Download</a>
   </div></div></div>''' for d in docs) if docs else '<div class="card" style="text-align:center;color:var(--text-3)">No documents uploaded yet</div>'}
 <script>
+function pickFileSource(inputId, labelId){{
+  const input=document.getElementById(inputId);
+  const label=document.getElementById(labelId);
+  const files=input.files;
+  if(!files||!files.length){{label.textContent='No files selected';label.dataset.activeInput='';return;}}
+  const folderName=files[0].webkitRelativePath?files[0].webkitRelativePath.split('/')[0]:null;
+  label.textContent=folderName?`${{files.length}} file(s) from folder "${{folderName}}"`:`${{files.length}} file(s) selected`;
+  label.dataset.activeInput=inputId;
+}}
 async function uploadDoc(lid){{
   const cat=document.getElementById('docCat').value;
-  const file=document.getElementById('docFile').files[0];
-  if(!file){{document.getElementById('uploadMsg').innerHTML='<span style="color:#e05555">Please select a file.</span>';return;}}
-  const fd=new FormData();fd.append('document_category',cat);fd.append('document_file',file);
+  const label=document.getElementById('docFileLabel');
+  const activeId=label.dataset.activeInput;
+  const files=activeId?document.getElementById(activeId).files:[];
+  if(!files||!files.length){{document.getElementById('uploadMsg').innerHTML='<span style="color:#e05555">Please select a file or folder.</span>';return;}}
+  const fd=new FormData();
+  fd.append('document_category',cat);
+  for(const f of files){{fd.append('document_file',f);fd.append('document_relpath',f.webkitRelativePath||f.name);}}
+  document.getElementById('uploadMsg').textContent='Uploading…';
   const res=await fetch(`/learners/${{lid}}/documents/upload`,{{method:'POST',body:fd}});
   const j=await res.json();
   document.getElementById('uploadMsg').innerHTML=j.ok?'<span style="color:#16a34a">✓ '+j.message+'</span>':'<span style="color:#e05555">⚠️ '+j.message+'</span>';
@@ -2577,9 +2595,13 @@ def documents():
 </div>
 <div id="uploadBox" class="card" style="display:none;margin-bottom:20px">
   <div class="card-title">Upload New Document</div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <input id="docName" placeholder="Document name" style="flex:1;padding:9px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;outline:none">
-    <input type="file" id="docFile2" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text)">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input id="docName" placeholder="Document name" style="flex:1;min-width:180px;padding:9px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px;outline:none">
+    <input type="file" id="docFile2" multiple style="display:none" onchange="pickFileSource('docFile2','docFile2Label')">
+    <input type="file" id="docFolder2" webkitdirectory directory multiple style="display:none" onchange="pickFileSource('docFolder2','docFile2Label')">
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('docFile2').click()">📄 Choose Files</button>
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('docFolder2').click()">📁 Choose Folder</button>
+    <span id="docFile2Label" style="font-size:12px;color:var(--text-3)">No files selected</span>
     <button class="btn btn-primary" onclick="uploadCentral()">Upload</button>
   </div>
   <div id="uploadMsg2" style="margin-top:8px;font-size:13px"></div>
@@ -2599,11 +2621,25 @@ def documents():
   </table>
 </div>
 <script>
+function pickFileSource(inputId, labelId){{
+  const input=document.getElementById(inputId);
+  const label=document.getElementById(labelId);
+  const files=input.files;
+  if(!files||!files.length){{label.textContent='No files selected';label.dataset.activeInput='';return;}}
+  const folderName=files[0].webkitRelativePath?files[0].webkitRelativePath.split('/')[0]:null;
+  label.textContent=folderName?`${{files.length}} file(s) from folder "${{folderName}}"`:`${{files.length}} file(s) selected`;
+  label.dataset.activeInput=inputId;
+}}
 async function uploadCentral(){{
   const name=document.getElementById('docName').value.trim();
-  const file=document.getElementById('docFile2').files[0];
-  if(!name||!file){{document.getElementById('uploadMsg2').innerHTML='<span style="color:#e05555">Please complete all fields.</span>';return;}}
-  const fd=new FormData();fd.append('name',name);fd.append('document_file',file);
+  const label=document.getElementById('docFile2Label');
+  const activeId=label.dataset.activeInput;
+  const files=activeId?document.getElementById(activeId).files:[];
+  if(!name||!files||!files.length){{document.getElementById('uploadMsg2').innerHTML='<span style="color:#e05555">Please enter a name and select a file or folder.</span>';return;}}
+  const fd=new FormData();
+  fd.append('name',name);
+  for(const f of files){{fd.append('document_file',f);fd.append('document_relpath',f.webkitRelativePath||f.name);}}
+  document.getElementById('uploadMsg2').textContent='Uploading…';
   const res=await fetch('/documents/upload',{{method:'POST',body:fd}});
   const j=await res.json();
   if(j.ok)location.reload();
@@ -2938,24 +2974,42 @@ def student_profile():
       </div>
       <div style="margin-top:14px">
         <div class="card-title" style="font-size:12px">Upload</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center">
           <select id="sCat" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text);font-size:13px">
             {''.join(f'<option value="{dt["id"]}">{dt["label"]}</option>' for dt in LEARNER_DOCUMENT_TYPES)}
           </select>
-          <input type="file" id="sFile" style="flex:1;padding:7px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text)">
+          <input type="file" id="sFile" multiple style="display:none" onchange="pickFileSource('sFile','sFileLabel')">
+          <input type="file" id="sFolder" webkitdirectory directory multiple style="display:none" onchange="pickFileSource('sFolder','sFileLabel')">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sFile').click()">📄 Files</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sFolder').click()">📁 Folder</button>
           <button class="btn btn-primary btn-sm" onclick="sUpload('{student['id']}')">Upload</button>
         </div>
+        <div id="sFileLabel" style="font-size:11.5px;color:var(--text-3);margin-top:4px">No files selected</div>
         <div id="sMsg" style="font-size:12px;margin-top:6px"></div>
       </div>
     </div>
   </div>
 </div>
 <script>
+function pickFileSource(inputId, labelId){{
+  const input=document.getElementById(inputId);
+  const label=document.getElementById(labelId);
+  const files=input.files;
+  if(!files||!files.length){{label.textContent='No files selected';label.dataset.activeInput='';return;}}
+  const folderName=files[0].webkitRelativePath?files[0].webkitRelativePath.split('/')[0]:null;
+  label.textContent=folderName?`${{files.length}} file(s) from folder "${{folderName}}"`:`${{files.length}} file(s) selected`;
+  label.dataset.activeInput=inputId;
+}}
 async function sUpload(lid){{
   const cat=document.getElementById('sCat').value;
-  const file=document.getElementById('sFile').files[0];
-  if(!file){{document.getElementById('sMsg').innerHTML='<span style="color:#e05555">Select a file.</span>';return;}}
-  const fd=new FormData();fd.append('document_category',cat);fd.append('document_file',file);
+  const label=document.getElementById('sFileLabel');
+  const activeId=label.dataset.activeInput;
+  const files=activeId?document.getElementById(activeId).files:[];
+  if(!files||!files.length){{document.getElementById('sMsg').innerHTML='<span style="color:#e05555">Select a file or folder.</span>';return;}}
+  const fd=new FormData();
+  fd.append('document_category',cat);
+  for(const f of files){{fd.append('document_file',f);fd.append('document_relpath',f.webkitRelativePath||f.name);}}
+  document.getElementById('sMsg').textContent='Uploading…';
   const res=await fetch('/student/documents/upload',{{method:'POST',body:fd}});
   const j=await res.json();
   document.getElementById('sMsg').innerHTML=j.ok?'<span style="color:#16a34a">✓ '+j.message+'</span>':'<span style="color:#e05555">'+j.message+'</span>';
@@ -3238,27 +3292,71 @@ def student_document_upload():
 def upload_learner_document(learner_id):
     return upload_document_for_learner(learner_id)
 
+def safe_relative_segments(file_obj, provided_relpath):
+    """Turn a (possibly folder-upload) relative path into safe, sanitized path segments.
+    Falls back to the plain filename when no relative path was supplied."""
+    raw = (provided_relpath or file_obj.filename or "").replace("\\", "/")
+    parts = [p for p in raw.split("/") if p not in ("", ".", "..")]
+    if not parts:
+        parts = [file_obj.filename or "file"]
+    safe_parts = [secure_filename(p) for p in parts]
+    safe_parts = [p for p in safe_parts if p]
+    if not safe_parts:
+        safe_parts = ["file"]
+    return safe_parts
+
+
 def upload_document_for_learner(learner_id):
     cat = request.form.get("document_category", "").strip()
-    file = request.files.get("document_file")
+    files = request.files.getlist("document_file")
+    relpaths = request.form.getlist("document_relpath")
     if cat not in DOCUMENT_TYPE_LOOKUP:
         return jsonify({"ok": False, "message": "Please select a valid document type."}), 400
-    if not file or not file.filename:
-        return jsonify({"ok": False, "message": "Please choose a file to upload."}), 400
-    if not is_allowed_document(file.filename):
-        return jsonify({"ok": False, "message": "Invalid file type. Allowed: " + ", ".join(sorted(ALLOWED_DOCUMENT_EXTENSIONS)).upper()}), 400
+    if not files or not any(f and f.filename for f in files):
+        return jsonify({"ok": False, "message": "Please choose a file or folder to upload."}), 400
+
     folder = os.path.join(LEARNER_UPLOADS_DIR, str(learner_id))
     os.makedirs(folder, exist_ok=True)
-    orig = secure_filename(file.filename)
-    ts = datetime.now().strftime("%Y%m%d%H%M%S")
-    stored = f"{cat}_{ts}_{orig}"
-    file.save(os.path.join(folder, stored))
     store = load_learner_document_store()
-    store.setdefault(str(learner_id), []).insert(0, {"id": f"{learner_id}-{ts}", "category": cat, "category_label": DOCUMENT_TYPE_LOOKUP[cat]["label"], "original_name": orig, "stored_name": stored, "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M")})
-    save_learner_document_store(store)
-    return jsonify({"ok": True, "message": f"{DOCUMENT_TYPE_LOOKUP[cat]['label']} uploaded successfully.", "documents": get_learner_documents(learner_id), "checklist": get_document_checklist(learner_id)})
+    ts_base = datetime.now().strftime("%Y%m%d%H%M%S")
+    saved, skipped = [], []
 
-@app.route("/learners/<learner_id>/documents/files/<filename>")
+    for idx, file in enumerate(files):
+        if not file or not file.filename:
+            continue
+        if not is_allowed_document(file.filename):
+            skipped.append(file.filename)
+            continue
+        provided = relpaths[idx] if idx < len(relpaths) else ""
+        segments = safe_relative_segments(file, provided)
+        orig_name = segments[-1]
+        subdirs = segments[:-1]
+        ts = f"{ts_base}{idx:03d}"
+        stored_rel = "/".join(subdirs + [f"{cat}_{ts}_{orig_name}"])
+        dest_path = os.path.join(folder, *stored_rel.split("/"))
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        file.save(dest_path)
+        display_name = "/".join(subdirs + [orig_name]) if subdirs else orig_name
+        store.setdefault(str(learner_id), []).insert(0, {
+            "id": f"{learner_id}-{ts}",
+            "category": cat,
+            "category_label": DOCUMENT_TYPE_LOOKUP[cat]["label"],
+            "original_name": display_name,
+            "stored_name": stored_rel,
+            "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
+        saved.append(display_name)
+
+    if not saved:
+        return jsonify({"ok": False, "message": "No valid files found. Allowed: " + ", ".join(sorted(ALLOWED_DOCUMENT_EXTENSIONS)).upper()}), 400
+
+    save_learner_document_store(store)
+    msg = f"{len(saved)} file(s) uploaded to {DOCUMENT_TYPE_LOOKUP[cat]['label']}."
+    if skipped:
+        msg += f" Skipped {len(skipped)} unsupported file(s)."
+    return jsonify({"ok": True, "message": msg, "documents": get_learner_documents(learner_id), "checklist": get_document_checklist(learner_id)})
+
+@app.route("/learners/<learner_id>/documents/files/<path:filename>")
 def learner_document_file(learner_id, filename):
     if not current_admin() and not current_student(): return redirect(url_for("login"))
     as_attachment = request.args.get("download") == "1"
@@ -3268,19 +3366,42 @@ def learner_document_file(learner_id, filename):
 @admin_required
 def upload_central_document():
     name = request.form.get("name", "").strip()
-    file = request.files.get("document_file")
-    if not name or not file or not file.filename:
-        return jsonify({"ok": False, "message": "Please complete name and select a file."}), 400
-    if not is_allowed_document(file.filename):
-        return jsonify({"ok": False, "message": "Invalid file type."}), 400
-    orig = secure_filename(file.filename)
-    ts = datetime.now().strftime("%Y%m%d%H%M%S")
-    stored = f"{ts}_{orig}"
-    file.save(os.path.join(CENTRAL_UPLOADS_DIR, stored))
+    files = request.files.getlist("document_file")
+    relpaths = request.form.getlist("document_relpath")
+    if not name or not files or not any(f and f.filename for f in files):
+        return jsonify({"ok": False, "message": "Please complete name and select a file or folder."}), 400
+
     docs = load_central_document_store()
-    docs.insert(0, {"id": f"DOC-{ts}", "name": name, "stored_name": stored, "updated": datetime.now().strftime("%Y-%m-%d %H:%M"), "status": "Current"})
+    ts_base = datetime.now().strftime("%Y%m%d%H%M%S")
+    saved, skipped = [], []
+
+    for idx, file in enumerate(files):
+        if not file or not file.filename:
+            continue
+        if not is_allowed_document(file.filename):
+            skipped.append(file.filename)
+            continue
+        provided = relpaths[idx] if idx < len(relpaths) else ""
+        segments = safe_relative_segments(file, provided)
+        orig_name = segments[-1]
+        subdirs = segments[:-1]
+        ts = f"{ts_base}{idx:03d}"
+        stored_rel = "/".join(subdirs + [f"{ts}_{orig_name}"])
+        dest_path = os.path.join(CENTRAL_UPLOADS_DIR, *stored_rel.split("/"))
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        file.save(dest_path)
+        display_name = f"{name} — {'/'.join(subdirs + [orig_name])}" if subdirs else (name if len(files) == 1 else f"{name} — {orig_name}")
+        docs.insert(0, {"id": f"DOC-{ts}", "name": display_name, "stored_name": stored_rel, "updated": datetime.now().strftime("%Y-%m-%d %H:%M"), "status": "Current"})
+        saved.append(display_name)
+
+    if not saved:
+        return jsonify({"ok": False, "message": "No valid files found in the selection."}), 400
+
     save_central_document_store(docs)
-    return jsonify({"ok": True, "documents": docs})
+    msg = f"{len(saved)} file(s) uploaded."
+    if skipped:
+        msg += f" Skipped {len(skipped)} unsupported file(s)."
+    return jsonify({"ok": True, "documents": docs, "message": msg})
 
 @app.errorhandler(413)
 def file_too_large(_):
