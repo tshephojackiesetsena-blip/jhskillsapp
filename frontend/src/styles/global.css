@@ -1,0 +1,41 @@
+@import '../../design/tokens.css';
+
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  background: var(--color-bg);
+  color: var(--text-high);
+  margin:0;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Buttons */
+.btn{border-radius:var(--radius-sm);padding:10px 16px;border:none;cursor:pointer;transition:transform var(--motion-short) var(--motion-ease),box-shadow var(--motion-short);font-weight:600}
+.btn:active{transform:scale(.99)}
+.btn:focus{outline:3px solid rgba(11,99,255,0.12);outline-offset:2px}
+.btn-primary{background:var(--color-primary-500);color:white;box-shadow:var(--shadow-1)}
+.btn-secondary{background:transparent;color:var(--text-medium);border:1px solid var(--border-1)}
+
+/* Inputs */
+.form-field{display:flex;flex-direction:column;margin-bottom:12px}
+.form-label{font-size:12px;color:var(--text-low);margin-bottom:6px}
+.input{height:44px;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-1);background:var(--color-surface)}
+.input:focus{border-color:var(--color-primary-400);box-shadow:0 0 0 3px rgba(11,99,255,0.06)}
+
+/* Card */
+.card{background:var(--color-surface);border-radius:var(--radius-md);padding:var(--space-4);box-shadow:var(--shadow-1);border:1px solid rgba(15,23,36,0.02)}
+
+/* KPI Card */
+.kpi{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));box-shadow:var(--shadow-1)}
+.kpi .value{font-size:28px;font-weight:700;color:var(--text-high)}
+.kpi .label{font-size:12px;color:var(--text-low)}
+.kpi .delta{font-size:12px}
+
+/* Sidebar / Header simple styles for stories */
+.app-shell{display:flex;min-height:240px}
+.sidebar{width:280px;background:var(--color-surface);padding:16px;border-right:1px solid var(--border-1)}
+.header{flex:1;background:transparent;padding:16px;border-bottom:1px solid var(--border-1)}
+.main{flex:1;padding:24px;background:var(--color-bg)}

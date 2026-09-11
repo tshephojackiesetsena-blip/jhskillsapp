@@ -1,0 +1,81 @@
+```mermaid
+erDiagram
+    USERS {
+        int UserId PK
+        string FullName
+        string Email
+        string PasswordHash
+        int RoleId FK
+    }
+    ROLES {
+        int RoleId PK
+        string Name
+    }
+    CLIENTS {
+        int ClientId PK
+        string CompanyName
+    }
+    CLIENTCONTACTS {
+        int ContactId PK
+        int ClientId FK
+        string FullName
+    }
+    PROJECTS {
+        int ProjectId PK
+        int ClientId FK
+        string ProjectName
+    }
+    LEARNERS {
+        int LearnerId PK
+        string FullName
+        int ProjectId FK
+    }
+    ENROLLMENTS {
+        int EnrollmentId PK
+        int LearnerId FK
+        int ProjectId FK
+    }
+    TRAININGSESSIONS {
+        int SessionId PK
+        int ProjectId FK
+        string Title
+    }
+    ATTENDANCE {
+        int AttendanceId PK
+        int LearnerId FK
+        int SessionId FK
+    }
+    ASSESSMENTS {
+        int AssessmentId PK
+        int LearnerId FK
+    }
+    DOCUMENTS {
+        int DocumentId PK
+        string OwnerType
+        int OwnerId
+    }
+    INVOICES {
+        int InvoiceId PK
+        int ClientId FK
+    }
+    PAYMENTS {
+        int PaymentId PK
+        int InvoiceId FK
+    }
+    AUDITLOGS {
+        int AuditId PK
+        string Entity
+    }
+
+    ROLES ||--o{ USERS : has
+    CLIENTS ||--o{ CLIENTCONTACTS : has
+    CLIENTS ||--o{ PROJECTS : owns
+    PROJECTS ||--o{ TRAININGSESSIONS : contains
+    PROJECTS ||--o{ ENROLLMENTS : includes
+    LEARNERS ||--o{ ENROLLMENTS : participates
+    LEARNERS ||--o{ ATTENDANCE : records
+    TRAININGSESSIONS ||--o{ ATTENDANCE : attendance_for
+    LEARNERS ||--o{ ASSESSMENTS : assessed_by
+    CLIENTS ||--o{ INVOICES : billed_to
+    INVOICES ||--o{ PAYMENTS : payments_for
+```
