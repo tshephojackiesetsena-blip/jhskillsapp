@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400">
+  <rect x="10" y="10" width="220" height="80" fill="#f4f6f8" stroke="#333"/>
+  <text x="20" y="35" font-family="Arial" font-size="14" fill="#111">Users</text>
+  <text x="20" y="55" font-family="Arial" font-size="12" fill="#333">UserId PK</text>
+  <text x="20" y="70" font-family="Arial" font-size="12" fill="#333">Email</text>
+
+  <rect x="260" y="10" width="220" height="80" fill="#fef7e0" stroke="#333"/>
+  <text x="270" y="35" font-family="Arial" font-size="14" fill="#111">Clients</text>
+  <text x="270" y="55" font-family="Arial" font-size="12" fill="#333">ClientId PK</text>
+  <text x="270" y="70" font-family="Arial" font-size="12" fill="#333">CompanyName</text>
+
+  <rect x="510" y="10" width="260" height="80" fill="#e8f7e4" stroke="#333"/>
+  <text x="520" y="35" font-family="Arial" font-size="14" fill="#111">Projects</text>
+  <text x="520" y="55" font-family="Arial" font-size="12" fill="#333">ProjectId PK</text>
+  <text x="520" y="70" font-family="Arial" font-size="12" fill="#333">ClientId FK</text>
+
+  <line x1="240" y1="50" x2="260" y2="50" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="480" y1="50" x2="510" y2="50" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+  </defs>
+
+  <text x="20" y="120" font-family="Arial" font-size="12" fill="#666">Generated: crm-starter branch — mermaid source in docs/erd.mmd</text>
+</svg>

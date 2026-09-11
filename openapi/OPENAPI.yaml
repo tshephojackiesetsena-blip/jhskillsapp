@@ -1,0 +1,165 @@
+openapi: 3.0.0
+info:
+  title: JH Skills CRM API
+  version: 0.1.0
+  description: OpenAPI skeleton for core CRM endpoints (auth, clients, learners, projects, finance, reports).
+servers:
+  - url: https://api.example.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        userId:
+          type: integer
+        fullName:
+          type: string
+        email:
+          type: string
+    Client:
+      type: object
+      properties:
+        clientId:
+          type: integer
+        companyName:
+          type: string
+        registrationNumber:
+          type: string
+    Learner:
+      type: object
+      properties:
+        learnerId:
+          type: integer
+        fullName:
+          type: string
+        idNumber:
+          type: string
+    Project:
+      type: object
+      properties:
+        projectId:
+          type: integer
+        projectName:
+          type: string
+        clientId:
+          type: integer
+    Invoice:
+      type: object
+      properties:
+        invoiceId:
+          type: integer
+        invoiceNumber:
+          type: string
+        amount:
+          type: number
+          format: double
+security:
+  - bearerAuth: []
+paths:
+  /api/login:
+    post:
+      summary: Authenticate user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+  /api/clients:
+    get:
+      summary: List clients
+      tags: [Clients]
+      responses:
+        '200':
+          description: client list
+    post:
+      summary: Create client
+      tags: [Clients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Client'
+      responses:
+        '201':
+          description: created
+  /api/learners:
+    get:
+      summary: List learners
+      tags: [Learners]
+      responses:
+        '200':
+          description: list
+    post:
+      summary: Create learner
+      tags: [Learners]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Learner'
+      responses:
+        '201':
+          description: created
+  /api/projects:
+    get:
+      summary: List projects
+      tags: [Projects]
+      responses:
+        '200':
+          description: list
+    post:
+      summary: Create project
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Project'
+      responses:
+        '201':
+          description: created
+  /api/invoices:
+    get:
+      summary: List invoices
+      tags: [Finance]
+      responses:
+        '200':
+          description: list
+  /api/reports:
+    get:
+      summary: Generate report
+      tags: [Reports]
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+      responses:
+        '200':
+          description: report generated
